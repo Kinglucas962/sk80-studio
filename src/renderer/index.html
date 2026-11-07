@@ -61,6 +61,11 @@
           <div class="row" style="margin-bottom:12px"><h3 style="margin:0">Escolha um efeito</h3><div class="grow"></div>
             <button class="btn small" id="copyToFx" title="Cria um efeito próprio com os quadros deste efeito, para você editar">Copiar para Efeitos próprios</button></div>
           <div class="modes" id="modes"></div>
+          <div class="cycrow">
+            <label class="toggle"><input type="checkbox" id="cycOn"><span></span>Trocar de efeito sozinho</label>
+            <select id="cycMin" aria-label="De quanto em quanto tempo trocar"><option value="1">a cada 1 min</option><option value="2">a cada 2 min</option><option value="5">a cada 5 min</option><option value="10">a cada 10 min</option><option value="15">a cada 15 min</option><option value="30">a cada 30 min</option><option value="60">a cada 1 hora</option></select>
+            <button class="btn small ghost" id="cycPick">Escolher efeitos</button>
+          </div>
           <p class="hint">Os marcados com ✋ reagem ao toque: passe o mouse no teclado desenhado para ver.</p>
         </div>
         <div class="card">
@@ -105,6 +110,10 @@
           <p class="hint inline" style="margin-bottom:10px">Pinta o grupo de teclas com a cor do pincel.</p>
           <div class="chips" id="tplList"></div>
           <label class="toggle small"><input type="checkbox" id="tplOnly"><span></span>Apagar as outras teclas</label>
+          <h3 style="margin-top:18px">Jogos</h3>
+          <p class="hint inline" style="margin-bottom:10px">Acende só as teclas que o jogo usa, cada grupo de uma cor: andar, ações, armas/itens e o resto. Os atalhos são os de fábrica de cada jogo.</p>
+          <div class="chips" id="gameList"></div>
+          <label class="toggle small"><input type="checkbox" id="gameProfile"><span></span>Criar um perfil que entra sozinho quando o jogo abrir</label>
         </div>
         <div class="card">
           <h3>Degradê</h3>
@@ -442,6 +451,12 @@
     <small class="hint inline" id="gifAskInfo"></small>
     <p class="hint">Quem fez “<span id="gifAskName"></span>” deixou o GIF da telinha junto. Com o GIF, ele vai para a sua biblioteca e é mandado para a telinha quando você usar o perfil. Dá para trocar depois em Perfis.</p>
     <div class="row center"><button class="btn primary" id="gifAskWith">Aplicar com o GIF</button><button class="btn" id="gifAskWithout">Sem o GIF</button><button class="btn ghost" id="gifAskCancel">Cancelar</button></div>
+  </div></div>
+  <div class="modal" id="cycModal" role="dialog" aria-modal="true" aria-labelledby="cycTitle"><div class="modal-card cyc-card">
+    <b id="cycTitle">Quais efeitos entram na troca</b>
+    <p class="hint">O teclado passa por eles na ordem da lista. Precisa de pelo menos dois.</p>
+    <div class="chips" id="cycList"></div>
+    <div class="row center"><button class="btn ghost small" id="cycAll">Marcar todos</button><button class="btn ghost small" id="cycNone">Desmarcar todos</button><button class="btn primary" id="cycClose">Pronto</button></div>
   </div></div>
   <div class="modal" id="newsModal"><div class="modal-card news-card">
     <img src="icon.png" alt="" width="56">

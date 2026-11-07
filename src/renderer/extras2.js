@@ -2,6 +2,10 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.3.0': [
+    'Trocar de efeito sozinho (Iluminação): o teclado passa pelos efeitos que você marcar, de 1 minuto a 1 hora.',
+    'Luz por jogo (Cor por tecla › Jogos): Minecraft, CS2, Valorant, Fortnite e League of Legends acendem só as teclas que o jogo usa. Dá para criar um perfil que entra sozinho quando o jogo abrir.',
+  ],
   '1.2.1': [
     'As letras do teclado desenhado ficam legíveis em qualquer cor: brancas nas cores fortes, escuras nas claras, nos dois temas.',
   ],
@@ -87,6 +91,7 @@ const DEFAULT_SETTINGS = {
   hotkey: 'Control+Alt+P',
   caps: { on: false, color: '#00e5ff' },
   msg: { on: false, apps: ['whatsapp', 'discord', 'telegram'], key: 1, color: '#25d366' },
+  cycle: { on: false, min: 5, modes: [100, 101, 102, 103, 106, 107, 108, 109, 111] }, // automatic effect change
 };
 function settingsDefaults() {
   const old = state.settings.night;

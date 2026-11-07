@@ -386,8 +386,55 @@ function initBackup() {
   }
 }
 
+// ---- automatic effect change (Iluminação › Trocar de efeito sozinho) ----
+// Goes through the marked effects in list order. Paused while per-key colours are on, while the lights are
+// off or dimmed (away, schedule) and with fewer than two effects marked. Picking an effect by hand restarts
+// the wait. Between two app effects the keyboard itself gets the same still colour, so nothing is written.
+let cycSince = Date.now(), cycSeen = null;
+function cycleTick() {
+  const c = state.settings.cycle, l = state.light;
+  if (cycSeen !== l.mode) { cycSeen = l.mode; cycSince = Date.now(); }
+  if (!c.on || state.paintActive || lightOverride() || c.modes.length < 2) return;
+  if (Date.now() - cycSince < c.min * 60000) return;
+  const list = window.SK_MODES.map(([id]) => id).filter((id) => c.modes.includes(id));
+  const next = list[(list.indexOf(l.mode) + 1) % list.length];
+  const before = JSON.stringify(fwLight(l));
+  l.mode = next; cycSeen = next; cycSince = Date.now();
+  if (state.view === 'light') syncLight();
+  if (JSON.stringify(fwLight(l)) !== before) applyLight(); else { persist(); appFxSync(); }
+}
+function renderCycle() {
+  const c = state.settings.cycle;
+  $('#cycOn').checked = c.on; $('#cycMin').value = String(c.min);
+  $('#cycPick').textContent = `Escolher efeitos (${c.modes.length})`;
+  const box = $('#cycList'); box.innerHTML = '';
+  for (const [id, name] of window.SK_MODES) {
+    if (id === 0) continue;
+    const b = document.createElement('button'); b.className = 'chip' + (c.modes.includes(id) ? ' on' : ''); b.textContent = name;
+    b.setAttribute('aria-pressed', c.modes.includes(id));
+    b.onclick = () => { c.modes = c.modes.includes(id) ? c.modes.filter((x) => x !== id) : [...c.modes, id]; persist(); renderCycle(); };
+    box.appendChild(b);
+  }
+}
+function initCycle() {
+  const c = state.settings.cycle;
+  $('#cycOn').onchange = (e) => {
+    c.on = e.target.checked; cycSince = Date.now(); persist(); renderCycle();
+    if (c.on && c.modes.length < 2) { toast('Marque pelo menos dois efeitos para trocar.'); $('#cycModal').classList.add('show'); }
+  };
+  $('#cycMin').onchange = (e) => { c.min = +e.target.value; cycSince = Date.now(); persist(); };
+  $('#cycPick').onclick = () => { renderCycle(); $('#cycModal').classList.add('show'); };
+  $('#cycAll').onclick = () => { c.modes = window.SK_MODES.map(([id]) => id).filter((id) => id !== 0); persist(); renderCycle(); };
+  $('#cycNone').onclick = () => { c.modes = []; persist(); renderCycle(); };
+  $('#cycClose').onclick = () => $('#cycModal').classList.remove('show');
+  $('#cycModal').onclick = (e) => { if (e.target.id === 'cycModal') $('#cycModal').classList.remove('show'); };
+  renderCycle();
+  setInterval(cycleTick, 5000);
+}
+
 function initExtras3() {
   initBackup();
+  initCycle();
   if (!state.settings.volBar) state.settings.volBar = { on: true };
   if (!state.settings.music) state.settings.music = { mode: 'bars', rainbow: true, color: '#ff2a2a', sens: 1.2 };
   if (!Array.isArray(state.effects)) state.effects = [];

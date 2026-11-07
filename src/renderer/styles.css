@@ -278,6 +278,11 @@ h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--text); }
 .mode:active { transform: scale(.96); }
 .mode.on { background: var(--fill); color: var(--fill-ink); border-color: transparent; font-weight: 600; box-shadow: 0 6px 16px -8px var(--accent); }
 .mode .touch { font-style: normal; font-size: 12px; opacity: .8; }
+.cycrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.cycrow .toggle { margin: 0; }
+.cycrow select { width: auto; }
+.cyc-card { max-width: 640px; display: flex; flex-direction: column; gap: 12px; }
+.cyc-card .chips { justify-content: center; }
 .modes-group { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 2px; margin: 10px 0 2px; padding-top: 12px; border-top: 1px solid var(--line); }
 .modes-group b { font-size: 13.5px; }
 .modes-group span { font-size: 12px; color: var(--mute); }

@@ -213,6 +213,40 @@ const TEMPLATES = [
   ['Navegação', byLabel('Ins', 'Del', 'PgUp', 'PgDn', '↑', '↓', '←', '→')],
   ['Esc + Enter + Backspace', byLabel('Esc', 'Enter', 'Backspace')],
 ];
+// Game layouts: the default key bindings of each game, one colour per group. Bindings and program names are
+// from general knowledge of each game's defaults, not checked inside the games. exe = process name used for
+// the automatic profile (Minecraft Java runs as the generic "javaw", so it gets none: pick it in Perfis).
+const LSHIFT = 73, LCTRL = 91, SPACE = 94;
+const GAME_COLORS = { move: '#2a7bff', act: '#ff8a00', slot: '#2ecc71', more: '#b14dff' };
+const GAMES = [
+  ['Minecraft', null, { move: [...byLabel('W', 'A', 'S', 'D'), SPACE, LSHIFT, LCTRL], act: byLabel('E', 'Q', 'F', 'T', '/'),
+    slot: byLabel('1', '2', '3', '4', '5', '6', '7', '8', '9'), more: byLabel('F1', 'F2', 'F3', 'F5', 'F11', 'Tab', 'Esc') }],
+  ['CS2', 'cs2', { move: [...byLabel('W', 'A', 'S', 'D'), SPACE, LSHIFT, LCTRL], act: byLabel('R', 'E', 'G', 'B', 'F', 'Q'),
+    slot: byLabel('1', '2', '3', '4', '5'), more: byLabel('Tab', 'Y', 'U', 'Esc') }],
+  ['Valorant', 'valorant-win64-shipping', { move: [...byLabel('W', 'A', 'S', 'D'), SPACE, LSHIFT, LCTRL], act: byLabel('C', 'Q', 'E', 'X'),
+    slot: byLabel('1', '2', '3', '4'), more: byLabel('R', 'F', 'G', 'B', 'Tab', 'Esc') }],
+  ['Fortnite', 'fortniteclient-win64-shipping', { move: [...byLabel('W', 'A', 'S', 'D'), SPACE, LSHIFT, LCTRL], act: byLabel('Q', 'G', 'R', 'E', 'F'),
+    slot: byLabel('1', '2', '3', '4', '5', '6'), more: byLabel('F1', 'F2', 'F3', 'F4', 'F5', 'M', 'Tab', 'Esc') }],
+  ['League of Legends', 'league of legends', { move: [SPACE, ...byLabel('Y')], act: byLabel('Q', 'W', 'E', 'R'),
+    slot: byLabel('1', '2', '3', '4', '5', '6', '7'), more: [...byLabel('D', 'F', 'B', 'P', 'Tab', 'Esc'), LCTRL] }],
+];
+function gamePaint(groups) {
+  const paint = {};
+  for (const g of ['more', 'slot', 'act', 'move']) for (const i of groups[g]) paint[i] = GAME_COLORS[g];
+  return paint;
+}
+function applyGame([name, exe, groups]) {
+  const paint = gamePaint(groups);
+  if (!$('#gameProfile').checked) { state.paint = paint; paintChanged(); toast(`Teclas do ${name} acesas`); return; }
+  // a new profile with this paint (the profile in use stays as it is) that turns on with the game
+  storeActive();
+  const data = snapshot(); data.paint = paint; data.paintActive = true;
+  const taken = new Set(state.profiles.flatMap((p) => p.apps || []));
+  const p = { id: uid(), name, apps: exe && !taken.has(exe) ? [exe] : [], data };
+  state.profiles.push(p); profilesChanged();
+  toast(p.apps.length ? `Perfil “${name}” criado: ele entra sozinho quando o jogo abrir.`
+    : `Perfil “${name}” criado. Abra o jogo e escolha ele em Perfis › Programas para trocar sozinho.`);
+}
 const GRADS = [
   ['Pôr do sol', '#ff8a00', '#c2005f'], ['Oceano', '#00e5ff', '#1a3cff'], ['Neon', '#ff00d4', '#3d00ff'],
   ['Fogo', '#ffd000', '#ff1a00'], ['Floresta', '#c4ff3a', '#00804a'], ['Gelo', '#ffffff', '#0090ff'], ['Arco-íris', null, null],
@@ -251,6 +285,15 @@ function initPaintExtras() {
     b.onmouseenter = () => idxs.forEach((i) => $(`.key[data-idx="${i}"]`).classList.add('tplhi'));
     b.onmouseleave = () => $$('.key.tplhi').forEach((k) => k.classList.remove('tplhi'));
     tl.appendChild(b);
+  }
+  const gl = $('#gameList');
+  for (const g of GAMES) {
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = g[0];
+    const all = Object.values(g[2]).flat();
+    b.onclick = () => applyGame(g);
+    b.onmouseenter = () => all.forEach((i) => $(`.key[data-idx="${i}"]`).classList.add('tplhi'));
+    b.onmouseleave = () => $$('.key.tplhi').forEach((k) => k.classList.remove('tplhi'));
+    gl.appendChild(b);
   }
   const gp = $('#gradPresets');
   for (const [name, a, b] of GRADS) {
