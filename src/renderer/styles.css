@@ -398,3 +398,10 @@ h3 { text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--text
 .pomo-set { display: flex; justify-content: center; gap: 22px; }
 .pomo-set .times { margin: 0; }
 .row.center { justify-content: center; }
+
+/* toggles readable with any accent (white keyboard light made "on" invisible) */
+.toggle span { background: #1b1f26; box-shadow: inset 0 0 0 1.5px #4a5263; }
+.toggle span::after { background: #8a93a3; }
+.toggle input:checked + span { background: var(--accent); box-shadow: none; }
+.toggle input:checked + span::after { background: var(--accent-ink); }
+.toggle input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
