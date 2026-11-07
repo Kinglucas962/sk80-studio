@@ -2,6 +2,10 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.3': [
+    'Efeitos próprios ganharam conta-gotas: clique numa tecla para pegar a cor dela.',
+    'Atalho Alt + clique numa tecla pega a cor, em Efeitos próprios e em Cor por tecla.',
+  ],
   '1.1.2': [
     'Luz por horário: coloque quantos horários quiser, cada um com o que a luz faz (diminuir o brilho, apagar ou usar um perfil). Fica em Ajustes › Luz automática.',
     'Perfil exportado leva junto o GIF da telinha. Quem importa ou baixa da galeria escolhe aplicar com ou sem o GIF.',

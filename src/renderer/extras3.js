@@ -155,6 +155,12 @@ window.SK_fxPaint = (idx, tool) => {
   const e = curFx(); if (!e) { toast('Crie um efeito primeiro'); return; }
   if (fx.preview) fxPreview(false);
   const f = e.frames[fx.frame];
+  if (tool === 'pick') { // eyedropper: take the key's colour in this frame, then go back to the brush
+    if (!f[idx]) { toast('Essa tecla está apagada neste quadro: não tem cor para pegar.'); return; }
+    fx.color = f[idx]; fx.tool = 'brush'; renderFx();
+    toast(`Cor ${fx.color.toUpperCase()} no pincel`);
+    return;
+  }
   if (tool === 'erase') delete f[idx]; else f[idx] = fx.color;
   persist(); renderBoard(); renderFrames();
 };

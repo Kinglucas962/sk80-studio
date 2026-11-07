@@ -85,7 +85,8 @@ function buildBoard() {
     const el = e.target.closest('.key'); if (!el) return;
     const idx = +el.dataset.idx;
     if (PAINT_VIEWS.includes(state.view)) {
-      const tool = e.button === 2 ? 'erase' : state.view === 'effects' ? (window.SK_fxTool ? window.SK_fxTool() : 'brush') : state.tool;
+      // right click erases, Alt + click picks the colour (eyedropper)
+      const tool = e.button === 2 ? 'erase' : e.altKey ? 'pick' : state.view === 'effects' ? (window.SK_fxTool ? window.SK_fxTool() : 'brush') : state.tool;
       if (tool !== 'pick') { dragTool = tool; dragDone = new Set([idx]); }
       e.preventDefault();
       paintOn(idx, tool);
