@@ -2,6 +2,10 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.8': [
+    'A prévia do Inclinado ficou igual ao teclado: várias faixas na diagonal, uma atrás da outra. A cópia para Efeitos próprios também.',
+    'O destaque do menu não fica mais por cima do aviso de atualização: o botão “Reiniciar e atualizar” aparece certinho.',
+  ],
   '1.1.7': [
     '“Copiar para Efeitos próprios” agora grava a volta inteira de efeitos que começam apagados, como o Inclinado. Se você copiou antes e ficou quase tudo apagado, copie de novo.',
   ],

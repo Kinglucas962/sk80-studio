@@ -119,10 +119,12 @@
             const v = clamp(1 - Math.abs(cy - crest) * 4.2);
             c = col(d * 420 - t * 60, v); break;
           }
-          case 18: { // tilt: sweeps from bottom-left (Ctrl) to top-right (screen) on the keyboard
+          case 18: { // tilt: diagonal bands, one after another, from bottom-left (Ctrl) to top-right (screen);
+            // sentido 2 goes from the screen to Ctrl (confirmed by Lucas). Several bands at once and faster than the
+            // old single band (also from Lucas); the number of bands (3) and the speed are estimates to compare.
             const q0 = (cx - cy * 0.6 + 0.6) / 1.6, q = dir % 2 ? 1 - q0 : q0;
-            const ph = ((t * sp * 0.4) % 1.6) - 0.3;
-            c = col(q * 300, clamp(1 - Math.abs(q - ph) * 4)); break;
+            const BANDS = 3, f = (((q - t * sp * 0.6) * BANDS) % 1 + 1) % 1;
+            c = col(q * 300, clamp(1 - Math.abs(f - 0.5) * 4)); break;
           }
           case 19: { // shuttle (as seen on the real keyboard): each row has a band bouncing end to end at constant speed;
             // Esc row starts going right, the next row goes left, alternating, so neighbouring rows cross in the middle.

@@ -600,7 +600,7 @@ small.live { color: var(--good); font-size: 11px; white-space: nowrap; }
 .pal-foot { display: flex; gap: 14px; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--mute); }
 
 /* update card + overlay */
-.updcard { margin: 8px 4px 4px; padding: 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; animation: updIn .35s ease; }
+.updcard { position: relative; z-index: 1; margin: 8px 4px 4px; padding: 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; animation: updIn .35s ease; }
 .updcard[hidden] { display: none; }
 .updtop { display: flex; gap: 10px; align-items: flex-start; }
 .updtop b { display: block; font-size: 13px; line-height: 1.3; }

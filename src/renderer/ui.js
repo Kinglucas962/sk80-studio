@@ -69,8 +69,15 @@ function hookNavigation() {
     movePill();
   };
   $$('.nav').forEach((n) => (n.onclick = () => go(n.dataset.view)));
-  // keep the highlight on the active item when the window or the update card changes size
-  new ResizeObserver(() => movePill(true)).observe($('.rail'));
+  // keep the highlight on the active item when anything in the sidebar moves: the window size, the update
+  // card appearing or growing (it pushes Ajustes up), the version line changing
+  const ro = new ResizeObserver(() => movePill(true));
+  ro.observe($('.rail')); for (const el of $('.rail').children) ro.observe(el);
+  new MutationObserver((list) => {
+    // ignore the highlight moving itself and menu items turning active (go() animates that glide)
+    if (list.every((m) => m.target.id === 'navPill' || (m.attributeName === 'class' && m.target.classList.contains('nav')))) return;
+    requestAnimationFrame(() => movePill(true));
+  }).observe($('.rail'), { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class', 'style'] });
   movePill(true);
 }
 

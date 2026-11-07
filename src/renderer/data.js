@@ -133,7 +133,7 @@ window.SK_MODE_INFO = {
   15: ['Um anel de luz se espalha a partir da tecla apertada.', true],
   16: ['Uma fileira inteira acende de cada vez.'],
   17: ['Uma onda sai do H para os dois lados, subindo e descendo.'],
-  18: ['A luz varre do Ctrl até a telinha.'],
+  18: ['Faixas de luz na diagonal, uma atrás da outra, entre o Ctrl e a telinha.'],
   19: ['Cada fileira tem uma faixa de luz que vai e volta.'],
 };
 
