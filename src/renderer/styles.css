@@ -394,6 +394,12 @@ kbd.hk { padding: 4px 10px; border-radius: 8px; background: var(--panel2); borde
 .chip.app { display: inline-flex; gap: 8px; align-items: center; }
 .chip.app i { font-style: normal; font-size: 10px; opacity: .6; }
 .chip.app:hover i { opacity: 1; color: var(--danger-ink); }
+/* message-alert apps: colour dot + name + remove */
+.chip.msgapp { padding: 4px 6px 4px 5px; cursor: default; }
+.chip.msgapp input[type=color] { width: 22px; height: 22px; padding: 2px; border-radius: 50%; }
+.chip.msgapp input[type=color]::-webkit-color-swatch { border-radius: 50%; }
+.chip.msgapp .msgdel { border: 0; background: none; color: var(--mute); cursor: pointer; font-size: 10px; padding: 2px 4px; border-radius: 6px; }
+.chip.msgapp .msgdel:hover { color: var(--danger-ink); }
 .mods { display: flex; gap: 14px; margin-bottom: 12px; }
 .mods label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
 .mods input { accent-color: var(--fill); }
@@ -589,6 +595,11 @@ small.live { color: var(--good); font-size: 11px; white-space: nowrap; }
 #gifAskInfo { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .news-card { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 480px; }
 .news-card ul { text-align: left; margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: var(--text); }
+/* several versions at once: scrolls inside the card, a heading per version */
+#newsList.many { max-height: 56vh; overflow-y: auto; list-style: none; padding: 0 6px 0 0; }
+#newsList .news-ver { font-weight: 700; font-size: 13px; color: var(--accent-fg); margin-top: 10px; }
+#newsList .news-ver:first-child { margin-top: 0; }
+#newsList .news-ver ul { font-weight: 400; color: var(--text); padding-left: 20px; }
 .toast {
   position: fixed; right: 24px; bottom: 24px; z-index: 60; padding: 11px 16px 11px 18px; border-radius: 12px; max-width: 420px;
   background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 13px;

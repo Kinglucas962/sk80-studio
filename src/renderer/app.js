@@ -735,6 +735,7 @@ async function pollConn() {
 // ---------- boot ----------
 (async function boot() {
   const store = await window.sk.getStore().catch(() => ({}));
+  window.SK_hadStore = !!store && Object.keys(store).length > 0; // false on a fresh install (news window)
   // extras.js loads after this file; wait for it before initialising
   if (document.readyState === 'loading') await new Promise((r) => document.addEventListener('DOMContentLoaded', r));
   if (store.light) Object.assign(state.light, store.light);

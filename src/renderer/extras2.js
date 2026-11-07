@@ -2,6 +2,10 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.4.1': [
+    'Aviso de mensagem com uma cor para cada programa: clique na bolinha ao lado do nome (WhatsApp verde, Discord azul...). Com dois programas esperando, o teclado pisca uma cor de cada vez.',
+    'Ao atualizar pulando versões, esta janela mostra tudo o que mudou desde a versão que você tinha.',
+  ],
   '1.4.0': [
     'Luz por horário com nascer e pôr do sol: escolha a sua cidade em Ajustes. Um horário que começa no pôr do sol e diminui o brilho escurece aos poucos, durante uma hora.',
     'Efeito novo “Digitação” (Iluminação › Efeitos do app): quanto mais rápido você digita, mais quente e forte fica a cor. Nada do que você digita é guardado.',
@@ -282,6 +286,9 @@ let capsOn = false;
 // message alert: unread counters from the window title ("(3) WhatsApp") or the taskbar button
 // (Discord: "Atenção solicitada, 1 notifications"); the bigger of the two wins
 const unread = {}, fromTitle = {}, fromBadge = {};
+// colour per app (settings.msg.colors); known apps start with their brand-like colour, others with the old single colour
+const MSG_DEFAULT_COLORS = { whatsapp: '#25d366', discord: '#3d5bff', telegram: '#22a6ee', instagram: '#ff2d8a', slack: '#ffb000', teams: '#6b5bff', messenger: '#0a84ff' };
+const msgColor = (app) => (state.settings.msg.colors || {})[app] || MSG_DEFAULT_COLORS[app] || state.settings.msg.color;
 function titleCount(t) { const m = String(t || '').match(/[(\[](\d+)[)\]]/); return m ? +m[1] : 0; }
 function onBadge(name, n) { fromBadge[name] = n; onTitle(name, null); }
 function onTitle(name, title) {
@@ -289,7 +296,10 @@ function onTitle(name, title) {
   unread[name] = Math.max(fromTitle[name] || 0, fromBadge[name] || 0);
   const any = state.settings.msg.on && Object.values(unread).some((n) => n > 0);
   liveSet('msg', any ? (map, t) => {
-    const c = (t % 1) < 0.5 ? hex2rgb(state.settings.msg.color) : [0, 0, 0];
+    // each app blinks in its own colour; with several apps waiting, one colour per blink, taking turns
+    const waiting = state.settings.msg.apps.filter((a) => unread[a] > 0);
+    const app = waiting[Math.floor(t) % Math.max(1, waiting.length)];
+    const c = (t % 1) < 0.5 ? hex2rgb(msgColor(app)) : [0, 0, 0];
     if (state.settings.msg.key === 'all') for (const k of LAYOUT) map[k.idx] = c; else map[state.settings.msg.key] = c;
   } : null);
   renderMsgStatus();
@@ -496,12 +506,22 @@ async function restoreTft() {
 // force = opened by hand (quick search): show the notes of this version, or the newest ones
 async function whatsNew(force) {
   const info = await window.sk.appInfo().catch(() => null); if (!info) return;
-  let v = info.version; const seen = state.settings.seenVersion;
+  const v = info.version, seen = state.settings.seenVersion;
   state.settings.seenVersion = v; persist();
-  if (force) { if (!CHANGES[v]) v = Object.keys(CHANGES)[0]; }
-  else if (!seen || seen === v || !CHANGES[v]) return;
-  $('#newsTitle').textContent = `Novidades da versão ${v}`;
-  $('#newsList').innerHTML = CHANGES[v].map((x) => `<li>${esc(x)}</li>`).join('');
+  // every version newer than the last one this person saw, up to the installed one (0.5 → 1.4 shows them all).
+  // No seenVersion but saved settings = came from a version older than this window: show everything.
+  const cmp = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); return 0; };
+  let list;
+  if (force) list = [CHANGES[v] ? v : Object.keys(CHANGES)[0]];
+  else {
+    if (seen === v || (!seen && !window.SK_hadStore)) return;
+    list = Object.keys(CHANGES).filter((k) => cmp(k, v) <= 0 && (!seen || cmp(k, seen) > 0)).sort((a, b) => cmp(b, a));
+    if (!list.length) return;
+  }
+  $('#newsTitle').textContent = list.length === 1 ? `Novidades da versão ${list[0]}` : `O que mudou desde a versão ${seen || 'que você tinha'}`;
+  $('#newsList').innerHTML = list.length === 1 ? CHANGES[list[0]].map((x) => `<li>${esc(x)}</li>`).join('')
+    : list.map((k) => `<li class="news-ver">Versão ${esc(k)}<ul>${CHANGES[k].map((x) => `<li>${esc(x)}</li>`).join('')}</ul></li>`).join('');
+  $('#newsList').classList.toggle('many', list.length > 1);
   $('#newsModal').classList.add('show');
 }
 
@@ -612,20 +632,23 @@ function initIndicators() {
   $('#capsOn').checked = s.caps.on; $('#capsColor').value = s.caps.color;
   $('#capsOn').onchange = (e) => { s.caps.on = e.target.checked; persist(); refreshWatch(); capsLayer(capsOn); };
   $('#capsColor').oninput = (e) => { s.caps.color = e.target.value; persist(); };
-  $('#msgOn').checked = s.msg.on; $('#msgColor').value = s.msg.color;
+  $('#msgOn').checked = s.msg.on;
   $('#msgKey').innerHTML = '<option value="all">Teclado inteiro</option>' + LAYOUT.filter((k) => k.label !== 'Fn').map((k) => `<option value="${k.idx}">${esc(k.label || 'Espaço')}</option>`).join('');
   $('#msgKey').value = String(s.msg.key);
   const renderApps = () => {
     const box = $('#msgApps'); box.innerHTML = '';
+    if (!s.msg.colors) s.msg.colors = {};
     for (const a of s.msg.apps) {
-      const c = document.createElement('button'); c.className = 'chip app'; c.innerHTML = `${esc(a)} <i>✕</i>`;
-      c.onclick = () => { s.msg.apps = s.msg.apps.filter((x) => x !== a); delete unread[a]; delete fromBadge[a]; persist(); renderApps(); refreshWatch(); onTitle(a, ''); };
+      const c = document.createElement('span'); c.className = 'chip app msgapp';
+      c.innerHTML = `<input type="color" aria-label="Cor do aviso do ${esc(a)}" title="Cor do aviso do ${esc(a)}"><span>${esc(a)}</span><button class="msgdel" aria-label="Tirar ${esc(a)}" title="Tirar da lista">✕</button>`;
+      const col = c.querySelector('input'); col.value = msgColor(a);
+      col.oninput = (e) => { s.msg.colors[a] = e.target.value; persist(); };
+      c.querySelector('.msgdel').onclick = () => { s.msg.apps = s.msg.apps.filter((x) => x !== a); delete s.msg.colors[a]; delete unread[a]; delete fromBadge[a]; persist(); renderApps(); refreshWatch(); onTitle(a, ''); };
       box.appendChild(c);
     }
   };
   renderApps();
   $('#msgOn').onchange = (e) => { s.msg.on = e.target.checked; persist(); refreshWatch(); if (!s.msg.on) { for (const k in unread) delete unread[k]; liveSet('msg', null); } renderMsgStatus(); };
-  $('#msgColor').oninput = (e) => { s.msg.color = e.target.value; persist(); };
   $('#msgKey').onchange = (e) => { s.msg.key = e.target.value === 'all' ? 'all' : +e.target.value; persist(); };
   const addMsgApp = (raw) => {
     // "WhatsApp.Root" -> "whatsapp": the short name also matches the taskbar button ("WhatsApp - 1 janela...")
