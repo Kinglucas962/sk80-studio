@@ -2,6 +2,7 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.0.3': ['O aviso de mensagem pode piscar o teclado inteiro, não só uma tecla.'],
   '1.0.2': [
     'Menu lateral em grupos, com uma linha explicando cada parte.',
     'A Iluminação mostra o que o teclado está mostrando agora e explica cada efeito; os que reagem ao toque têm ✋.',
@@ -141,7 +142,10 @@ function titleCount(t) { const m = String(t || '').match(/[(\[](\d+)[)\]]/); ret
 function onTitle(name, title) {
   unread[name] = titleCount(title);
   const any = state.settings.msg.on && Object.values(unread).some((n) => n > 0);
-  liveSet('msg', any ? (map, t) => { map[state.settings.msg.key] = (t % 1) < 0.5 ? hex2rgb(state.settings.msg.color) : [0, 0, 0]; } : null);
+  liveSet('msg', any ? (map, t) => {
+    const c = (t % 1) < 0.5 ? hex2rgb(state.settings.msg.color) : [0, 0, 0];
+    if (state.settings.msg.key === 'all') for (const k of LAYOUT) map[k.idx] = c; else map[state.settings.msg.key] = c;
+  } : null);
   const showMsg = () => $('#msgBox').classList.toggle('off', !s.msg.on);
   showMsg(); $('#msgOn').addEventListener('change', showMsg);
   renderMsgStatus();
@@ -313,7 +317,7 @@ function initIndicators() {
   $('#capsOn').onchange = (e) => { s.caps.on = e.target.checked; persist(); refreshWatch(); capsLayer(capsOn); };
   $('#capsColor').oninput = (e) => { s.caps.color = e.target.value; persist(); };
   $('#msgOn').checked = s.msg.on; $('#msgColor').value = s.msg.color;
-  $('#msgKey').innerHTML = LAYOUT.filter((k) => k.label !== 'Fn').map((k) => `<option value="${k.idx}">${esc(k.label || 'Espaço')}</option>`).join('');
+  $('#msgKey').innerHTML = '<option value="all">Teclado inteiro</option>' + LAYOUT.filter((k) => k.label !== 'Fn').map((k) => `<option value="${k.idx}">${esc(k.label || 'Espaço')}</option>`).join('');
   $('#msgKey').value = String(s.msg.key);
   const renderApps = () => {
     const box = $('#msgApps'); box.innerHTML = '';
@@ -326,7 +330,7 @@ function initIndicators() {
   renderApps();
   $('#msgOn').onchange = (e) => { s.msg.on = e.target.checked; persist(); refreshWatch(); if (!s.msg.on) { for (const k in unread) delete unread[k]; liveSet('msg', null); } renderMsgStatus(); };
   $('#msgColor').oninput = (e) => { s.msg.color = e.target.value; persist(); };
-  $('#msgKey').onchange = (e) => { s.msg.key = +e.target.value; persist(); };
+  $('#msgKey').onchange = (e) => { s.msg.key = e.target.value === 'all' ? 'all' : +e.target.value; persist(); };
   $('#msgAdd').onclick = () => {
     const v = $('#msgApp').value.trim().toLowerCase().replace(/\.exe$/, ''); if (!v) return;
     if (!s.msg.apps.includes(v)) s.msg.apps.push(v);
