@@ -2,6 +2,10 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.6': [
+    'Aviso de mensagem: escolha o programa numa lista dos programas abertos, sem precisar digitar o nome.',
+    'A cor e o botão de ligar das luzes de aviso não ficam mais um em cima do outro.',
+  ],
   '1.1.5': [
     'Aviso de mensagem agora funciona com o WhatsApp novo e com o Discord: o app lê o número que aparece no ícone da barra de tarefas.',
   ],
@@ -208,7 +212,7 @@ function onTitle(name, title) {
 }
 function renderMsgStatus() {
   const s = Object.entries(unread).filter(([, n]) => n > 0).map(([a, n]) => `${a}: ${n}`).join(' · ');
-  const el = $('#msgStatus'); if (el) el.textContent = state.settings.msg.on ? (s ? 'Não lidas → ' + s : 'Nenhuma mensagem nova nos títulos agora.') : '';
+  const el = $('#msgStatus'); if (el) el.textContent = state.settings.msg.on ? (s ? 'Não lidas → ' + s : 'Nenhuma mensagem nova nesses programas agora.') : '';
 }
 
 function refreshWatch() {
@@ -491,11 +495,30 @@ function initIndicators() {
   $('#msgOn').onchange = (e) => { s.msg.on = e.target.checked; persist(); refreshWatch(); if (!s.msg.on) { for (const k in unread) delete unread[k]; liveSet('msg', null); } renderMsgStatus(); };
   $('#msgColor').oninput = (e) => { s.msg.color = e.target.value; persist(); };
   $('#msgKey').onchange = (e) => { s.msg.key = e.target.value === 'all' ? 'all' : +e.target.value; persist(); };
-  $('#msgAdd').onclick = () => {
-    const v = $('#msgApp').value.trim().toLowerCase().replace(/\.exe$/, ''); if (!v) return;
-    if (!s.msg.apps.includes(v)) s.msg.apps.push(v);
-    $('#msgApp').value = ''; persist(); renderApps(); refreshWatch();
+  const addMsgApp = (raw) => {
+    // "WhatsApp.Root" -> "whatsapp": the short name also matches the taskbar button ("WhatsApp - 1 janela...")
+    const v = String(raw || '').trim().toLowerCase().replace(/\.exe$/, '').split('.')[0]; if (!v) return;
+    if (v === 'electron' || v === 'sk80 studio') { toast('Esse é o próprio SK80 Studio'); return; }
+    if (s.msg.apps.includes(v)) { toast(`“${v}” já está na lista`); return; }
+    s.msg.apps.push(v); persist(); renderApps(); refreshWatch(); toast(`“${v}” adicionado`);
   };
+  $('#msgAdd').onclick = () => { addMsgApp($('#msgApp').value); $('#msgApp').value = ''; };
+  $('#msgApp').onkeydown = (e) => { if (e.key === 'Enter') $('#msgAdd').click(); };
+  // open programs (with a window), same list as in Perfis
+  const fillMsgPick = async () => {
+    const sel = $('#msgPick');
+    sel.innerHTML = '<option value="">Carregando…</option>';
+    const list = await window.sk.appList().catch(() => []);
+    const seen = new Set();
+    sel.innerHTML = '<option value="">Escolher um programa aberto…</option>' + list
+      .filter((a) => a.name !== 'electron' && !seen.has(a.name) && seen.add(a.name))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((a) => `<option value="${esc(a.name)}">${esc(a.name.split('.')[0])} — ${esc((a.title || '').slice(0, 50))}</option>`).join('');
+  };
+  $('#msgPick').onchange = (e) => { if (e.target.value) addMsgApp(e.target.value); e.target.value = ''; };
+  $('#msgPickRefresh').onclick = fillMsgPick;
+  $('#msgOn').addEventListener('change', () => { if (s.msg.on) fillMsgPick(); });
+  if (s.msg.on) fillMsgPick();
   const showMsg = () => $('#msgBox').classList.toggle('off', !s.msg.on);
   showMsg(); $('#msgOn').addEventListener('change', showMsg);
   renderMsgStatus();

@@ -536,6 +536,9 @@ small.live { color: var(--good); font-size: 11px; white-space: nowrap; }
 .sched-foot small { margin: 0; }
 .inline-ctl { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--mute); }
 .inline-ctl input.text { min-width: 240px; }
+/* controls on the right of a setting stay side by side (colour + switch), even when the text is long */
+.srow:not(.col):not(.sitem) > .inline-ctl { flex: none; flex-wrap: nowrap; }
+.inline-ctl select.apppick { width: 320px; }
 .about { display: flex; align-items: center; gap: 12px; margin: 16px 0 10px; padding-top: 14px; border-top: 1px solid var(--line); }
 .about img { width: 44px; height: 44px; }
 .about b { display: block; }

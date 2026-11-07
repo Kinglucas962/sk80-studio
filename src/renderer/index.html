@@ -399,7 +399,8 @@
             <div class="srow"><div><b>O que pisca</b><small>Uma tecla só ou o teclado inteiro.</small></div><select id="msgKey"></select></div>
             <div class="srow col"><div><b>Programas</b><small id="msgStatus"></small></div>
               <div class="chips" id="msgApps"></div>
-              <span class="inline-ctl"><input class="text" id="msgApp" placeholder="nome do programa, ex.: whatsapp"><button class="btn small" id="msgAdd">Adicionar</button></span></div>
+              <span class="inline-ctl"><select id="msgPick" class="apppick" aria-label="Escolher um programa aberto"><option value="">Escolher um programa aberto…</option></select><button class="btn ghost small" id="msgPickRefresh" title="Atualizar a lista de programas abertos">Atualizar lista</button></span>
+              <span class="inline-ctl">ou digite o nome <input class="text" id="msgApp" placeholder="ex.: whatsapp"><button class="btn small" id="msgAdd">Adicionar</button></span></div>
           </div>
         </div>
         <p class="hint">As luzes de aviso funcionam melhor com o efeito Estático ou com Cor por tecla. Com efeitos animados, só a tecla do aviso é controlada, e o resto pode se comportar diferente.</p>
