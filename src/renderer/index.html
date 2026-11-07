@@ -16,11 +16,13 @@
     <button class="nav" data-view="macros"><i>⟳</i><span>Macros<small>Sequências de teclas</small></span></button>
     <button class="nav" data-view="screen"><i>▣</i><span>Telinha<small>GIFs e imagens</small></span></button>
     <div class="navgroup">Ferramentas</div>
-    <button class="nav" data-view="profiles"><i>◈</i><span>Perfis<small>Jogos, trabalho, noite…</small></span></button>
-    <button class="nav" data-view="pomodoro"><i>◷</i><span>Pomodoro<small>Cronômetro nas teclas F</small></span></button>
+    <button class="nav" data-view="profiles"><i>◈</i><span>Perfis<small>Jogo, trabalho, noite</small></span></button>
+    <button class="nav" data-view="effects"><i>✦</i><span>Efeitos próprios<small>Crie sua animação</small></span></button>
+    <button class="nav" data-view="music"><i>♫</i><span>Música<small>Luz que segue o som</small></span></button>
+    <button class="nav" data-view="pomodoro"><i>◷</i><span>Pomodoro<small>Foco e pausa</small></span></button>
     <button class="nav" data-view="tester"><i>✓</i><span>Testar teclas<small>Ache tecla com defeito</small></span></button>
     <div class="grow"></div>
-    <button class="nav" data-view="settings"><i>⚙</i><span>Ajustes<small>Luz automática, atalhos</small></span></button>
+    <button class="nav" data-view="settings"><i>⚙</i><span>Ajustes<small>Luz automática e mais</small></span></button>
     <div class="updcard" id="updCard" hidden>
       <div class="updtop"><span class="updico" id="updIco"></span><div><b id="updCardTitle"></b><small id="updCardSub"></small></div></div>
       <div class="updbar"><div id="updCardBar"></div></div>
@@ -37,6 +39,7 @@
         <p id="viewSub"></p>
       </div>
       <div class="topright">
+        <div class="histbtns"><button class="btn ghost small" id="undoBtn" title="Desfazer (Ctrl + Z)" disabled>↶ Desfazer</button><button class="btn ghost small" id="redoBtn" title="Refazer (Ctrl + Y)" disabled>↷</button></div>
         <label class="profpick" title="Tudo que você muda fica salvo neste perfil">Perfil em uso <select id="profSel"></select></label>
         <div class="sync" id="sync"><span class="sdot"></span><span id="syncText">Tudo salvo no teclado</span></div>
       </div>
@@ -276,6 +279,60 @@
       </div>
     </section>
 
+    <!-- EFEITOS PRÓPRIOS -->
+    <section class="view" id="view-effects">
+      <div class="grid-macro">
+        <div class="card mside">
+          <h3 style="margin:0">Seus efeitos</h3>
+          <div class="mlist" id="fxList"></div>
+          <div class="lbl">Criar a partir de</div>
+          <div class="chips" id="fxNewBtns">
+            <button class="chip" data-v="blank">Em branco</button><button class="chip" data-v="wave">Onda arco-íris</button>
+            <button class="chip" data-v="blink">Piscar</button><button class="chip" data-v="run">Corrida</button><button class="chip" data-v="rows">Fileiras</button>
+          </div>
+        </div>
+        <div class="card" id="fxEditor">
+          <div class="row">
+            <input class="name" id="fxName" placeholder="Nome do efeito">
+            <div class="grow"></div>
+            <button class="btn ghost small" id="fxPreview">Ver prévia</button>
+            <button class="btn primary small" id="fxPlay">Tocar no teclado</button>
+            <button class="btn ghost small danger" id="fxDel">Excluir</button>
+          </div>
+          <div class="row fxpaint">
+            <span class="hint inline">Pinte o quadro no teclado desenhado lá em cima:</span>
+            <input type="color" id="fxColor" class="sm">
+            <div class="seg small" id="fxTools"><button data-v="brush" class="on">Pincel</button><button data-v="erase">Borracha</button></div>
+            <button class="btn ghost small" id="fxFill">Pintar tudo</button><button class="btn ghost small" id="fxClearF">Limpar quadro</button>
+          </div>
+          <div class="fxframes" id="fxFrames"></div>
+          <div class="row">
+            <button class="btn small" id="fxAdd">+ Quadro</button><button class="btn ghost small" id="fxDupF">Duplicar quadro</button>
+            <button class="btn ghost small" id="fxLeft" title="Mover para a esquerda">◀</button><button class="btn ghost small" id="fxRight" title="Mover para a direita">▶</button>
+            <button class="btn ghost small danger" id="fxDelF">Apagar quadro</button>
+          </div>
+          <div class="slider"><span>Cada quadro</span><input type="range" id="fxSpeed" min="50" max="2000" step="50" value="300"><output id="fxSpeedOut" style="width:70px">300 ms</output></div>
+          <p class="hint" id="fxInfo"></p>
+          <p class="hint">“Tocar no teclado” usa as cores ao vivo: o efeito roda enquanto o app estiver aberto (ou na bandeja). Parar volta para a sua luz salva.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÚSICA -->
+    <section class="view" id="view-music">
+      <div class="music-page">
+        <canvas id="musicMeter" width="640" height="160"></canvas>
+        <button class="btn primary big" id="musicToggle">Ligar a música no teclado</button>
+        <p class="hint" id="musicState">Desligado.</p>
+        <div class="slist">
+          <div class="srow"><div><b>Estilo</b></div><div class="seg small" id="musicMode"><button data-v="bars">Barras</button><button data-v="pulse">Pulso</button><button data-v="wave">Onda</button></div></div>
+          <div class="srow"><div><b>Cores</b><small>Arco-íris ou uma cor só.</small></div><span class="inline-ctl"><input type="color" id="musicColor" class="sm"><label class="toggle"><input type="checkbox" id="musicRainbow"><span></span></label> arco-íris</span></div>
+          <div class="srow"><div><b>Sensibilidade</b><small>Aumente se a música estiver baixa.</small></div><span class="inline-ctl"><input type="range" id="musicSens" min="0.5" max="3" step="0.1" style="width:160px"><output id="musicSensOut">1.2×</output></span></div>
+        </div>
+        <p class="hint">Usa o som que sai do PC (Spotify, YouTube, jogos), não o microfone. Funciona com o app aberto ou na bandeja.</p>
+      </div>
+    </section>
+
     <!-- POMODORO -->
     <section class="view" id="view-pomodoro">
       <div class="pomo-page">
@@ -319,6 +376,8 @@
 
         <h2>Luzes de aviso</h2>
         <div class="slist">
+          <div class="srow"><div><b>Barra de volume</b><small>Quando você muda o volume do PC, as teclas 1 a 0 mostram o nível por 2 segundos.</small></div>
+            <label class="toggle"><input type="checkbox" id="volOn"><span></span></label></div>
           <div class="srow"><div><b>Caps Lock aceso</b><small>A tecla Caps fica nesta cor enquanto o Caps Lock estiver ligado.</small></div>
             <span class="inline-ctl"><input type="color" id="capsColor" class="sm"><label class="toggle"><input type="checkbox" id="capsOn"><span></span></label></span></div>
           <div class="srow"><div><b>Piscar quando chegar mensagem</b><small>Para programas que mostram as não lidas no título, como “(3) WhatsApp”.</small></div>
@@ -378,5 +437,6 @@
   <script src="app.js" charset="utf-8"></script>
   <script src="extras.js" charset="utf-8"></script>
   <script src="extras2.js" charset="utf-8"></script>
+  <script src="extras3.js" charset="utf-8"></script>
 </body>
 </html>

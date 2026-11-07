@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SK80 Studio</title>
+<meta name="description" content="Aplicativo gratuito para controlar o teclado Womier / XVX SK80: iluminação, cor por tecla, macros, telinha, perfis e mais.">
+<meta property="og:title" content="SK80 Studio">
+<meta property="og:description" content="O app que o seu Womier SK80 merecia. Grátis e de código aberto.">
+<meta property="og:image" content="https://kinglucas962.github.io/sk80-studio/screenshot.png">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0d0f12; --deck: #15181d; --line: #262b34; --text: #e8ebf0; --mute: #8f98a8;
+    --red: #ff2a2a; --violet: #7b2bff;
+    --display: "Chakra Petch", "Segoe UI", sans-serif; --body: "IBM Plex Sans", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--ink); color: var(--text); font: 17px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  :focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 6px; }
+
+  /* top bar */
+  .bar { display: flex; align-items: center; gap: 12px; padding: 22px 0; }
+  .bar img { width: 34px; height: 34px; }
+  .bar b { font: 700 19px var(--display); letter-spacing: .3px; }
+  .bar nav { margin-left: auto; display: flex; gap: 22px; font-size: 15px; }
+  .bar nav a { text-decoration: none; color: var(--mute); }
+  .bar nav a:hover { color: var(--text); }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: center; padding: 40px 0 72px; }
+  h1 { font: 700 clamp(44px, 6.4vw, 76px)/0.98 var(--display); margin: 0 0 22px; letter-spacing: -1px; }
+  .lede { font-size: 20px; color: #c9d0db; max-width: 30ch; margin: 0 0 30px; }
+  .dl { display: inline-flex; align-items: center; gap: 14px; padding: 16px 26px; border-radius: 14px; text-decoration: none;
+    background: linear-gradient(135deg, var(--red), var(--violet)); color: #fff; font: 600 18px var(--display); letter-spacing: .3px;
+    box-shadow: 0 18px 40px -16px #7b2bffaa; transition: transform .15s; }
+  .dl:hover { transform: translateY(-2px); }
+  .dl svg { width: 22px; height: 22px; }
+  .meta { margin-top: 14px; color: var(--mute); font-size: 14px; }
+  .board { width: 100%; height: auto; display: block; filter: drop-shadow(0 40px 60px #000c); }
+  .board .key { transition: fill .08s; }
+  .hint { color: var(--mute); font-size: 13px; text-align: center; margin-top: 10px; }
+
+  /* sections */
+  section { padding: 72px 0; border-top: 1px solid var(--line); }
+  h2 { font: 600 clamp(30px, 3.6vw, 42px)/1.1 var(--display); margin: 0 0 12px; letter-spacing: -.3px; }
+  .sub { color: var(--mute); max-width: 60ch; margin: 0 0 40px; }
+
+  .feats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px 40px; margin: 0; padding: 0; list-style: none; }
+  .feats li { border-top: 2px solid var(--line); padding-top: 16px; }
+  .feats b { display: block; font: 600 20px var(--display); margin-bottom: 4px; }
+  .feats span { color: var(--mute); font-size: 15.5px; }
+
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 56px; }
+  .shots img { width: 100%; border-radius: 14px; border: 1px solid var(--line); display: block; }
+
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 22px; max-width: 760px; }
+  .steps li { counter-increment: s; display: grid; grid-template-columns: 52px 1fr; gap: 18px; align-items: start; }
+  .steps li::before { content: counter(s); font: 700 22px var(--display); width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--deck); border: 1px solid var(--line); border-bottom-width: 4px; }
+  .steps b { display: block; font-weight: 600; margin-top: 4px; }
+  .steps span { color: var(--mute); }
+
+  details { border-bottom: 1px solid var(--line); padding: 18px 0; max-width: 760px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 18px; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; float: right; color: var(--mute); font-family: var(--display); }
+  details[open] summary::after { content: "–"; }
+  details p { color: var(--mute); margin: 10px 0 0; }
+
+  footer { border-top: 1px solid var(--line); padding: 34px 0 50px; color: var(--mute); font-size: 14px; display: flex; flex-wrap: wrap; gap: 10px 26px; }
+  footer a { color: var(--text); }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; gap: 36px; padding-top: 16px; }
+    .feats { grid-template-columns: 1fr 1fr; }
+    .bar nav { display: none; }
+  }
+  @media (max-width: 560px) {
+    .feats, .shots { grid-template-columns: 1fr; }
+    .dl { width: 100%; justify-content: center; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .dl { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <img src="icon.png" alt="">
+    <b>SK80 Studio</b>
+    <nav><a href="#funcoes">Funções</a><a href="#instalar">Instalar</a><a href="#duvidas">Dúvidas</a><a href="https://github.com/Kinglucas962/sk80-studio">GitHub</a></nav>
+  </header>
+
+  <div class="hero">
+    <div>
+      <h1>O app que o seu SK80 merecia.</h1>
+      <p class="lede">Luz, cor por tecla, macros, a telinha e perfis num lugar só, bonito e fácil. Feito para substituir o driver oficial.</p>
+      <a class="dl" id="dl" href="https://github.com/Kinglucas962/sk80-studio/releases/latest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 10l6 6 6-6M4 21h16"/></svg>
+        <span id="dlText">Baixar para Windows</span>
+      </a>
+      <div class="meta" id="dlMeta">Windows 10 e 11 · grátis · código aberto</div>
+    </div>
+    <div>
+      <svg class="board" id="board" viewBox="0 0 700 300" role="img" aria-label="Teclado SK80 desenhado, com luzes animadas"></svg>
+      <p class="hint">Passe o mouse nas teclas.</p>
+    </div>
+  </div>
+</div>
+
+<section id="funcoes">
+  <div class="wrap">
+    <h2>Tudo que o teclado sabe fazer, e mais um pouco</h2>
+    <p class="sub">Tudo é salvo sozinho no teclado. Não existe botão “Salvar”.</p>
+    <ul class="feats">
+      <li><b>Iluminação</b><span>Os 19 efeitos do teclado, com uma prévia animada de cada um antes de escolher.</span></li>
+      <li><b>Cor por tecla</b><span>Clique ou arraste para pintar. Modelos prontos (WASD, setas, F1–F12) e degradê.</span></li>
+      <li><b>Efeitos próprios</b><span>Desenhe quadros de luz e toque a sua animação em loop no teclado.</span></li>
+      <li><b>Teclas e macros</b><span>Troque o que cada tecla faz, grave sequências e use a biblioteca de macros prontas.</span></li>
+      <li><b>Telinha</b><span>Mande GIFs para a tela de 160×96, enquadre com zoom e guarde tudo numa biblioteca.</span></li>
+      <li><b>Perfis</b><span>Um perfil para cada jogo. O teclado troca sozinho quando você abre o programa.</span></li>
+      <li><b>Música</b><span>As teclas pulsam com o som que está tocando no PC.</span></li>
+      <li><b>Luzes de aviso</b><span>Caps Lock aceso, barra de volume nas teclas de número e aviso de mensagem.</span></li>
+      <li><b>Luz automática</b><span>Apaga quando o PC bloqueia ou fica parado, e muda de noite no horário que você escolher.</span></li>
+    </ul>
+    <div class="shots">
+      <img src="screenshot.png" alt="Tela de Iluminação do SK80 Studio com o efeito Girando em arco-íris" loading="lazy">
+      <img src="screenshot-efeitos.png" alt="Editor de efeitos próprios do SK80 Studio, com os quadros de uma onda arco-íris" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section id="instalar">
+  <div class="wrap">
+    <h2>Como instalar</h2>
+    <p class="sub">Leva menos de um minuto. Depois disso o app se atualiza sozinho.</p>
+    <ol class="steps">
+      <li><div><b>Baixe o instalador</b><span>Pelo botão lá em cima, ou na página de <a href="https://github.com/Kinglucas962/sk80-studio/releases/latest">versões no GitHub</a>.</span></div></li>
+      <li><div><b>Rode o arquivo</b><span>Se aparecer “O Windows protegeu o computador”, clique em Mais informações e depois em Executar assim mesmo. O aviso aparece porque o instalador não tem uma assinatura paga.</span></div></li>
+      <li><div><b>Feche o driver oficial</b><span>Os dois programas não devem mexer no teclado ao mesmo tempo.</span></div></li>
+      <li><div><b>Pronto</b><span>Abra o SK80 Studio. Ele encontra o teclado sozinho pelo cabo USB.</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<section id="duvidas">
+  <div class="wrap">
+    <h2>Dúvidas</h2>
+    <details><summary>Funciona com o meu teclado?</summary><p>Foi feito e testado com o Womier / XVX SK80 com telinha, ligado pelo cabo. Outros teclados não são reconhecidos.</p></details>
+    <details><summary>É seguro?</summary><p>O código é aberto: qualquer pessoa pode ler tudo no GitHub. O app não pede login, não coleta dados e só conversa com o teclado e com o GitHub para procurar atualização.</p></details>
+    <details><summary>Preciso manter o app aberto?</summary><p>Não para as luzes, teclas e macros: tudo fica salvo no teclado. Música, efeitos próprios, Pomodoro e luzes de aviso precisam do app aberto ou escondido na bandeja.</p></details>
+    <details><summary>Posso perder minhas configurações ao atualizar?</summary><p>Não. Perfis, macros e a biblioteca de GIFs ficam guardados no seu computador e continuam lá depois de cada atualização.</p></details>
+    <details><summary>É oficial da Womier?</summary><p>Não. É um projeto pessoal e independente, sem ligação com a Womier ou a XVX.</p></details>
+  </div>
+</section>
+
+<div class="wrap">
+  <footer>
+    <span>SK80 Studio · licença MIT · feito por <a href="https://github.com/Kinglucas962">Kinglucas962</a></span>
+    <a href="https://github.com/Kinglucas962/sk80-studio">Código no GitHub</a>
+    <a href="https://github.com/Kinglucas962/sk80-studio/issues/new?template=perfil.md">Mandar um perfil para a galeria</a>
+  </footer>
+</div>
+
+<script>
+// Real SK80 key positions (from the app): [label, x, y, w]
+const LAYOUT = __LAYOUT__;
+const svg = document.getElementById('board'), NS = 'http://www.w3.org/2000/svg';
+const OX = 72, OY = 22, W = 656, H = 258, PAD = 22;
+const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+svg.appendChild(el('rect', { x: 2, y: 2, width: 696, height: 296, rx: 26, fill: '#181b21', stroke: '#2a2f38' }));
+const tft = el('rect', { x: PAD + 652 - OX, y: PAD + 24 - OY, width: 76, height: 46, rx: 6, fill: '#05060a', stroke: '#2d323c' });
+svg.appendChild(tft);
+const scr = el('rect', { x: PAD + 658 - OX, y: PAD + 30 - OY, width: 64, height: 34, rx: 3, fill: 'url(#scr)' });
+const defs = el('defs', {}); defs.innerHTML = '<linearGradient id="scr" x1="0" x2="1"><stop offset="0" stop-color="#00e5ff"/><stop offset="1" stop-color="#9b4dff"/></linearGradient>';
+svg.appendChild(defs); svg.appendChild(scr);
+const keys = LAYOUT.map(([label, x, y, w]) => {
+  const g = el('g', {}), r = el('rect', { class: 'key', x: PAD + x - OX, y: PAD + y - OY, width: w, height: 28, rx: 6, fill: '#23272f' });
+  const t = el('text', { x: PAD + x - OX + w / 2, y: PAD + y - OY + 18, 'text-anchor': 'middle', 'font-size': 10, fill: '#ffffffcc', 'font-family': 'IBM Plex Sans, sans-serif', 'pointer-events': 'none' });
+  t.textContent = label; g.append(r, t); svg.appendChild(g);
+  return { r, cx: (x + w / 2 - OX) / W, cy: (y + 14 - OY) / H };
+});
+// "Girando" in rainbow, plus a ripple from any key the mouse touches
+const ripples = [];
+keys.forEach((k) => k.r.addEventListener('mouseenter', () => { ripples.push({ x: k.cx, y: k.cy, t: performance.now() }); if (ripples.length > 12) ripples.shift(); }));
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function frame(now) {
+  const t = now / 1000;
+  for (const k of keys) {
+    const a = Math.atan2((k.cy - 0.5) * 0.45, k.cx - 0.5) * 180 / Math.PI;
+    let hue = (a + (reduce ? 0 : t * 70) + 720) % 360, light = 52;
+    for (const r of ripples) {
+      const age = (now - r.t) / 1000, d = Math.hypot(k.cx - r.x, (k.cy - r.y) * 0.45), w = Math.max(0, 1 - Math.abs(d - age * 0.5) * 18) * Math.max(0, 1 - age);
+      light += w * 38;
+    }
+    k.r.setAttribute('fill', `hsl(${hue.toFixed(0)} 100% ${Math.min(92, light).toFixed(0)}%)`);
+  }
+  if (!reduce || ripples.length) requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+if (reduce) svg.addEventListener('mousemove', () => requestAnimationFrame(frame));
+
+// latest version + direct installer link
+fetch('https://api.github.com/repos/Kinglucas962/sk80-studio/releases/latest').then((r) => r.json()).then((rel) => {
+  const exe = (rel.assets || []).find((a) => /\.exe$/.test(a.name)); if (!exe) return;
+  document.getElementById('dl').href = exe.browser_download_url;
+  document.getElementById('dlText').textContent = `Baixar a versão ${rel.tag_name.replace(/^v/, '')}`;
+  document.getElementById('dlMeta').textContent = `Windows 10 e 11 · ${Math.round(exe.size / 1048576)} MB · grátis · código aberto`;
+}).catch(() => {});
+</script>
+</body>
+</html>

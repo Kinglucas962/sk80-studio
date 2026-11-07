@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('sk', {
   onTrayProfile: (cb) => ipcRenderer.on('tray-profile', (_e, id) => cb(id)),
   setWatch: (cfg) => call('watch:set', cfg),
   onCaps: (cb) => ipcRenderer.on('caps', (_e, on) => cb(on)),
+  onVolume: (cb) => ipcRenderer.on('volume', (_e, v, muted) => cb(v, muted)),
   onTitle: (cb) => ipcRenderer.on('win-title', (_e, name, title) => cb(name, title)),
   onAway: (cb) => ipcRenderer.on('away', (_e, away, why) => cb(away, why)),
   onIdle: (cb) => ipcRenderer.on('idle', (_e, sec) => cb(sec)),

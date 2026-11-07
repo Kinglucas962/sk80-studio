@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Kinglucas962/sk80-studio/releases/latest"><b>⬇ Baixar para Windows</b></a>
+  <a href="https://kinglucas962.github.io/sk80-studio/"><b>⬇ Baixar para Windows</b></a> · <a href="https://kinglucas962.github.io/sk80-studio/">Página do projeto</a>
 </p>
 
 ![SK80 Studio](docs/screenshot.png)
@@ -21,6 +21,10 @@
 - **Macros**: grave sequências de teclas, edite cada passo e escolha como elas tocam: uma vez, repetir N vezes, ou liga/desliga. Tem uma biblioteca de macros prontas e dá para exportar e importar.
 - **Telinha**: mande GIFs e imagens para a tela de 160×96. Dá para enquadrar com zoom e escolher os quadros. Tudo que você envia fica numa biblioteca.
 - **Perfis**: cada perfil guarda luz, cores, teclas e macros. Troque com um clique, ou deixe o app trocar sozinho quando você abrir um programa ou jogo.
+- **Efeitos próprios**: pinte quadros no teclado desenhado e toque a sua animação em loop.
+- **Música**: o teclado dança com o som que está tocando no PC.
+- **Barra de volume**: ao mudar o volume, as teclas 1 a 0 mostram o nível.
+- **Desfazer e refazer** em tudo que você pinta e edita.
 - **Pomodoro**: as teclas F1–F12 viram um cronômetro que vai apagando.
 - **Luz automática**: apaga quando o PC bloqueia ou fica parado, e muda por horário (diminui, apaga ou troca de perfil à noite).
 - **Atalho global** para trocar de perfil (padrão Ctrl + Alt + P).

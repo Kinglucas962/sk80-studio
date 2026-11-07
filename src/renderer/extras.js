@@ -59,6 +59,7 @@ function switchProfile(id, manual) {
     storeActive();
     state.activeProfile = id;
     applyData(clone(p.data));
+    if (typeof histReset === 'function') histReset(); // undo stays inside one profile
     persist(); renderProfiles(); updateTray();
     toast(`Perfil “${p.name}” ${manual ? 'ativado' : 'ativado sozinho'}`);
     await pushToKeyboard();

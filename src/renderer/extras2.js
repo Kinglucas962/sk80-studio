@@ -2,6 +2,12 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.0': [
+    'Desfazer e refazer (Ctrl + Z / Ctrl + Y, ou os botões no topo) na pintura, teclas, macros e efeitos.',
+    'Efeitos próprios: pinte quadros no teclado desenhado e toque a animação em loop.',
+    'Música: o teclado dança com o som do PC, em barras, pulso ou onda.',
+    'Barra de volume: ao mudar o volume, as teclas 1 a 0 mostram o nível.',
+  ],
   '1.0.6': [
     'Atualização mais clara: um cartão no menu mostra o download e avisa quando está pronta.',
     'Clique na versão, no rodapé do menu, para procurar atualização na hora (também tem na bandeja).',
@@ -167,6 +173,7 @@ function refreshWatch() {
   window.sk.setWatch({
     fg: state.profiles.some((p) => (p.apps || []).length),
     caps: !!(state.settings.caps && state.settings.caps.on),
+    vol: !!(state.settings.volBar && state.settings.volBar.on),
     titles: state.settings.msg && state.settings.msg.on ? state.settings.msg.apps : [],
   }).catch(() => {});
 }

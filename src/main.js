@@ -1,11 +1,11 @@
-const { app, BrowserWindow, ipcMain, screen, dialog, Tray, Menu, nativeImage, Notification, powerMonitor, globalShortcut, shell, net } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, Tray, Menu, nativeImage, Notification, powerMonitor, globalShortcut, shell, net, session, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn, execFile } = require('child_process');
 const { SK80 } = require('./sk80');
 
 // Keep the data folder %APPDATA%\sk80-studio even though the product name is "SK80 Studio"
-app.setPath('userData', path.join(app.getPath('appData'), 'sk80-studio'));
+app.setPath('userData', process.env.SK80_USERDATA || path.join(app.getPath('appData'), 'sk80-studio'));
 app.setAppUserModelId('io.github.kinglucas962.sk80studio');
 
 const kb = new SK80();
@@ -84,7 +84,7 @@ function buildTray() {
 
 // ---------- system watcher: foreground program, Caps Lock, window titles (one hidden PowerShell) ----------
 // Prints tab-separated lines:  fg <process>  |  caps <0|1>  |  title <process> <window title>
-let fgProc = null, watchCfg = { fg: false, caps: false, titles: [] }, watchKey = '';
+let fgProc = null, watchCfg = { fg: false, caps: false, vol: false, titles: [] }, watchKey = '';
 const FG_SCRIPT = `
 Add-Type @"
 using System; using System.Runtime.InteropServices;
@@ -95,10 +95,17 @@ public static class FG {
 }
 "@
 $cfg = $env:SK80_WATCH | ConvertFrom-Json
-$last = '?'; $lastCaps = -1; $titles = @{}
+if ($cfg.vol) { Add-Type -TypeDefinition $env:SK80_VOLCS }
+$last = '?'; $lastCaps = -1; $lastVol = '?'; $titles = @{}; $tick = 0
 function Out1($s) { [Console]::Out.WriteLine($s); [Console]::Out.Flush() }
 while ($true) {
-  if ($cfg.fg) {
+  $tick++
+  if ($cfg.vol) {
+    $v = [SkAudio]::Read()
+    if ($v -ne $lastVol) { $lastVol = $v; Out1 ("vol" + [char]9 + $v) }
+  }
+  $slow = (-not $cfg.vol) -or ($tick % 3 -eq 0)
+  if ($cfg.fg -and $slow) {
     $p = 0; [void][FG]::GetWindowThreadProcessId([FG]::GetForegroundWindow(), [ref]$p)
     $n = ''; try { $n = (Get-Process -Id $p -ErrorAction Stop).ProcessName } catch {}
     if ($n -ne $last) { $last = $n; Out1 ("fg" + [char]9 + $n) }
@@ -107,23 +114,23 @@ while ($true) {
     $c = [int]([FG]::GetKeyState(0x14) -band 1)
     if ($c -ne $lastCaps) { $lastCaps = $c; Out1 ("caps" + [char]9 + $c) }
   }
-  foreach ($name in $cfg.titles) {
+  if ($slow) { foreach ($name in $cfg.titles) {
     $t = (Get-Process -Name $name -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle } | Select-Object -First 1).MainWindowTitle
     if ($null -eq $t) { $t = '' }
     if ($titles[$name] -ne $t) { $titles[$name] = $t; Out1 ("title" + [char]9 + $name + [char]9 + $t) }
-  }
-  Start-Sleep -Milliseconds 700
+  } }
+  if ($cfg.vol) { Start-Sleep -Milliseconds 250 } else { Start-Sleep -Milliseconds 700 }
 }`;
 function setWatch(cfg) {
-  watchCfg = { fg: !!cfg.fg, caps: !!cfg.caps, titles: (cfg.titles || []).filter(Boolean) };
+  watchCfg = { fg: !!cfg.fg, caps: !!cfg.caps, vol: !!cfg.vol, titles: (cfg.titles || []).filter(Boolean) };
   const key = JSON.stringify(watchCfg);
-  const on = watchCfg.fg || watchCfg.caps || watchCfg.titles.length;
+  const on = watchCfg.fg || watchCfg.caps || watchCfg.vol || watchCfg.titles.length;
   if (key === watchKey && (fgProc || !on)) return;
   watchKey = key;
   if (fgProc) { fgProc.kill(); fgProc = null; }
   if (!on) return;
   const p = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', FG_SCRIPT],
-    { windowsHide: true, env: { ...process.env, SK80_WATCH: key } });
+    { windowsHide: true, env: { ...process.env, SK80_WATCH: key, SK80_VOLCS: fs.readFileSync(path.join(__dirname, 'volume.cs'), 'utf8') } });
   fgProc = p;
   let buf = '';
   p.stdout.on('data', (d) => {
@@ -134,9 +141,11 @@ function setWatch(cfg) {
       if (!win) continue;
       if (parts[0] === 'fg') win.webContents.send('fg-app', (parts[1] || '').toLowerCase());
       else if (parts[0] === 'caps') win.webContents.send('caps', parts[1] === '1');
+      else if (parts[0] === 'vol') { const [v, m] = (parts[1] || '').split(' '); if (v !== '') win.webContents.send('volume', +v, m === '1'); }
       else if (parts[0] === 'title') win.webContents.send('win-title', parts[1].toLowerCase(), parts.slice(2).join('\t'));
     }
   });
+  p.stderr.on('data', (d) => { if (process.env.SK80_DISPLAY2) try { fs.appendFileSync(path.join(__dirname, '..', 're', 'watch.err'), d); } catch (_) {} });
   p.on('exit', () => { if (fgProc === p) { fgProc = null; watchKey = ''; } });
 }
 const watchForeground = (on) => setWatch({ ...watchCfg, fg: on }); // kept for older callers
@@ -297,6 +306,13 @@ ipcMain.handle('screen', wrap((frames, delays) => {
   return kb.uploadScreen(frames.map((f) => Buffer.from(f)), delays);
 }));
 
-app.whenReady().then(() => { createWindow(); initUpdater(); startPowerWatch(); });
+// "Luz que reage à música": the window asks for display media; we answer with the system sound (loopback).
+// The screen video track it comes with is stopped right away by the renderer.
+function allowSystemAudio() {
+  session.defaultSession.setDisplayMediaRequestHandler((_req, cb) => {
+    desktopCapturer.getSources({ types: ['screen'] }).then((s) => cb({ video: s[0], audio: 'loopback' })).catch(() => cb({}));
+  });
+}
+app.whenReady().then(() => { allowSystemAudio(); createWindow(); initUpdater(); startPowerWatch(); });
 app.on('before-quit', () => { quitting = true; setWatch({}); globalShortcut.unregisterAll(); });
 app.on('window-all-closed', () => { kb.close(); app.quit(); });

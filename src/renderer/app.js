@@ -23,6 +23,7 @@ const state = {
   paintActive: false,                 // true when the keyboard is showing the per-key colours
   profiles: [], activeProfile: null, baseProfile: null,
   settings: { tray: false, testFrames: false },
+  effects: [],                        // custom animations made in the Efeitos view
 };
 
 // ---------- sync indicator + device writes ----------
@@ -36,11 +37,12 @@ async function device(fn) {
   pending++; setSync();
   try { await fn(); syncErr = null; return true; } catch (e) { syncErr = e.message; return false; } finally { pending--; setSync(); }
 }
-const persist = debounce(() => window.sk.setStore({
+const persist = debounce(() => { if (window.SK_onPersist) window.SK_onPersist(); return window.sk.setStore({
   light: state.light, paint: state.paint, paintBright: state.paintBright, brush: state.brush,
   keymap: state.keymap, macros: state.macros, paintActive: state.paintActive,
   profiles: state.profiles, activeProfile: state.activeProfile, baseProfile: state.baseProfile, settings: state.settings,
-}), 300);
+  effects: state.effects,
+}); }, 300);
 
 function setAccent(hex) {
   const c = hex2rgb(hex);
@@ -73,20 +75,20 @@ function buildBoard() {
   let dragTool = null, dragDone = new Set();
   window.addEventListener('mouseup', () => { dragTool = null; dragDone.clear(); });
   b.addEventListener('mouseover', (e) => {
-    if (!dragTool || state.view !== 'paint') return;
+    if (!dragTool || !PAINT_VIEWS.includes(state.view)) return;
     const el = e.target.closest('.key'); if (!el) return;
     const idx = +el.dataset.idx;
     if (dragDone.has(idx)) return;
-    dragDone.add(idx); paintKey(idx, dragTool);
+    dragDone.add(idx); paintOn(idx, dragTool);
   });
   b.addEventListener('mousedown', (e) => {
     const el = e.target.closest('.key'); if (!el) return;
     const idx = +el.dataset.idx;
-    if (state.view === 'paint') {
-      const tool = e.button === 2 ? 'erase' : state.tool;
+    if (PAINT_VIEWS.includes(state.view)) {
+      const tool = e.button === 2 ? 'erase' : state.view === 'effects' ? (window.SK_fxTool ? window.SK_fxTool() : 'brush') : state.tool;
       if (tool !== 'pick') { dragTool = tool; dragDone = new Set([idx]); }
       e.preventDefault();
-      paintKey(idx, tool);
+      paintOn(idx, tool);
     }
     else if (state.view === 'keys') selectKey(idx);
     else if (state.view === 'light') sim.press(idx, performance.now() / 1000);
@@ -98,11 +100,13 @@ function buildBoard() {
   b.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
+// the drawn keyboard paints the per-key colours, or the current frame in the Efeitos view
+const paintOn = (idx, tool) => (state.view === 'effects' && window.SK_fxPaint ? window.SK_fxPaint(idx, tool) : paintKey(idx, tool));
 function renderBoard() {
   for (const el of $$('.key')) {
     const idx = +el.dataset.idx, k = byIdx[idx];
-    if (state.view === 'paint') {
-      const c = state.paint[idx];
+    if (PAINT_VIEWS.includes(state.view)) {
+      const c = state.view === 'effects' ? (window.SK_fxColors ? window.SK_fxColors()[idx] : null) : state.paint[idx];
       el.style.setProperty('--glow', c || 'transparent'); el.style.setProperty('--ga', c ? .85 : 0); el.classList.toggle('light-ink', !!c && (() => { const q = hex2rgb(c); return 0.2126 * q[0] + 0.7152 * q[1] + 0.0722 * q[2] > 150; })()); el.style.setProperty('--halo', c ? c + '99' : 'transparent');
     } else if (state.view !== 'light') { el.classList.remove('light-ink'); el.style.setProperty('--ga', 0); el.style.setProperty('--halo', 'transparent'); }
     const m = state.keymap[state.layer][idx];
@@ -142,10 +146,13 @@ const VIEWS = {
   screen: ['Telinha', 'Mande um GIF ou imagem para a tela do teclado.'],
   profiles: ['Perfis', 'Cada perfil guarda luz, cores, teclas e macros. Troque com um clique ou deixe trocar sozinho.'],
   pomodoro: ['Pomodoro', 'Foco e pausa marcados nas teclas F1 a F12.'],
+  effects: ['Efeitos próprios', 'Pinte quadros no teclado desenhado e toque em loop no teclado.'],
+  music: ['Música', 'O teclado dança com o som que está tocando no PC.'],
   settings: ['Ajustes', 'Luz automática, atalho e opções do aplicativo.'],
   tester: ['Testar teclas', 'Aperte cada tecla do teclado. As que funcionam ficam verdes; clique duplo fica vermelho.'],
 };
-const NO_BOARD = ['macros', 'screen', 'profiles', 'settings', 'pomodoro'];
+const NO_BOARD = ['macros', 'screen', 'profiles', 'settings', 'pomodoro', 'music'];
+const PAINT_VIEWS = ['paint', 'effects']; // views where clicking the drawn keys paints
 const onView = {}; // view name -> callback when it opens (filled by extras.js)
 function go(v) {
   stopRec();
@@ -154,7 +161,7 @@ function go(v) {
   $$('.view').forEach((n) => n.classList.toggle('active', n.id === 'view-' + v));
   $('#viewTitle').textContent = VIEWS[v][0]; $('#viewSub').textContent = VIEWS[v][1];
   $('#boardWrap').style.display = NO_BOARD.includes(v) ? 'none' : '';
-  $('#board').classList.toggle('painting', v === 'paint');
+  $('#board').classList.toggle('painting', PAINT_VIEWS.includes(v));
   $('#board').classList.toggle('testing', v === 'tester');
   if (v === 'screen') renderLibrary();
   if (v === 'light') syncLight();
@@ -718,6 +725,7 @@ async function pollConn() {
   if (store.activeProfile) state.activeProfile = store.activeProfile;
   if (store.baseProfile) state.baseProfile = store.baseProfile;
   if (store.settings) Object.assign(state.settings, store.settings);
+  if (store.effects) state.effects = store.effects;
   if (store.paint) state.paint = store.paint;
   if (store.paintBright != null) state.paintBright = store.paintBright;
   if (store.brush) state.brush = store.brush;
