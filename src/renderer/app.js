@@ -103,13 +103,22 @@ function buildBoard() {
 
 // the drawn keyboard paints the per-key colours, or the current frame in the Efeitos view
 const paintOn = (idx, tool) => (state.view === 'effects' && window.SK_fxPaint ? window.SK_fxPaint(idx, tool) : paintKey(idx, tool));
+// legend colour for a lit key: the glow (rgb, opacity a) sits over the cap, so work out how light the mix
+// looks and pick white letters on dark/strong colours and near-black letters on light ones
+function keyInk(el, rgb, a) {
+  if (!rgb) { el.classList.remove('ink-light', 'ink-dark'); return; }
+  const capL = document.documentElement.dataset.theme === 'light' ? 0.93 : 0.13;
+  const L = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+  const dark = capL * (1 - a) + L * a >= 0.55;
+  el.classList.toggle('ink-dark', dark); el.classList.toggle('ink-light', !dark);
+}
 function renderBoard() {
   for (const el of $$('.key')) {
     const idx = +el.dataset.idx, k = byIdx[idx];
     if (PAINT_VIEWS.includes(state.view)) {
       const c = state.view === 'effects' ? (window.SK_fxColors ? window.SK_fxColors()[idx] : null) : state.paint[idx];
-      el.style.setProperty('--glow', c || 'transparent'); el.style.setProperty('--ga', c ? .85 : 0); el.classList.toggle('light-ink', !!c && (() => { const q = hex2rgb(c); return 0.2126 * q[0] + 0.7152 * q[1] + 0.0722 * q[2] > 150; })()); el.style.setProperty('--halo', c ? c + '99' : 'transparent');
-    } else if (state.view !== 'light') { el.classList.remove('light-ink'); el.style.setProperty('--ga', 0); el.style.setProperty('--halo', 'transparent'); }
+      el.style.setProperty('--glow', c || 'transparent'); el.style.setProperty('--ga', c ? .85 : 0); keyInk(el, c ? hex2rgb(c) : null, .85); el.style.setProperty('--halo', c ? c + '99' : 'transparent');
+    } else if (state.view !== 'light') { keyInk(el, null); el.style.setProperty('--ga', 0); el.style.setProperty('--halo', 'transparent'); }
     const m = state.keymap[state.layer][idx];
     const showMap = state.view === 'keys' && m && m.type !== 0;
     el.classList.toggle('mapped', !!showMap);
@@ -128,10 +137,11 @@ function animate() {
     for (const el of $$('.key')) {
       const c = colors[+el.dataset.idx] || [0, 0, 0];
       const mx = Math.max(c[0], c[1], c[2]), a = mx / 255;
-      if (a < 0.03) { el.style.setProperty('--ga', 0); el.style.setProperty('--halo', 'transparent'); continue; }
+      if (a < 0.03) { el.style.setProperty('--ga', 0); el.style.setProperty('--halo', 'transparent'); keyInk(el, null); continue; }
       const pure = `rgb(${(c[0] * 255 / mx) | 0},${(c[1] * 255 / mx) | 0},${(c[2] * 255 / mx) | 0})`;
       el.style.setProperty('--glow', pure);
       el.style.setProperty('--ga', (0.2 + 0.75 * a).toFixed(2));
+      keyInk(el, [c[0] * 255 / mx, c[1] * 255 / mx, c[2] * 255 / mx], 0.2 + 0.75 * a);
       el.style.setProperty('--halo', `rgba(${(c[0] * 255 / mx) | 0},${(c[1] * 255 / mx) | 0},${(c[2] * 255 / mx) | 0},${(a * 0.7).toFixed(2)})`);
     }
   }

@@ -203,7 +203,9 @@ h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--text); }
 .key.pop { animation: pop .25s ease; }
 @keyframes pop { 40% { transform: scale(.88); } }
 .key .ico { position: relative; z-index: 1; color: var(--text); }
-.key.light-ink span { color: #111; text-shadow: none; }
+/* lit keys (app.js keyInk): white letters on dark or strong colours, near-black on light ones, both themes */
+:root .board .key.ink-light span { color: #fff; text-shadow: 0 1px 2px #0009; }
+:root .board .key.ink-dark span { color: #141414; text-shadow: 0 0 2px #ffffff90; }
 .key.tplhi { outline: 2px dashed var(--accent-fg); outline-offset: 1px; }
 .board.painting .key { cursor: crosshair; }
 .board[data-tool=erase].painting .key { cursor: not-allowed; }

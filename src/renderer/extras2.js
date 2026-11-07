@@ -2,6 +2,9 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.2.1': [
+    'As letras do teclado desenhado ficam legíveis em qualquer cor: brancas nas cores fortes, escuras nas claras, nos dois temas.',
+  ],
   '1.2.0': [
     '13 efeitos novos na Iluminação, em “Efeitos do app”: Fogo, Aurora, Matrix, Estrelas, Batimento, Sirene, Oceano, Lava, Plasma, Cometa, Tempestade, Vagalumes e Confete. Eles funcionam com o app aberto.',
     'Os efeitos tocados pelo app (e os Efeitos próprios) ficaram bem mais lisos no teclado: cerca de 3 vezes mais quadros por segundo.',
