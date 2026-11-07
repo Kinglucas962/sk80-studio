@@ -96,7 +96,7 @@ public static class FG {
 "@
 $cfg = $env:SK80_WATCH | ConvertFrom-Json
 if ($cfg.vol) { Add-Type -TypeDefinition $env:SK80_VOLCS }
-$last = '?'; $lastCaps = -1; $lastVol = '?'; $titles = @{}; $badges = @{}; $tick = 0
+$last = '?'; $lastCaps = -1; $lastVol = '?'; $titles = @{}; $badges = @{}; $script:raws = @{}; $tick = 0
 function Out1($s) { [Console]::Out.WriteLine($s); [Console]::Out.Flush() }
 while ($true) {
   $tick++
@@ -122,7 +122,7 @@ while ($true) {
   } }
   # taskbar buttons: some apps (Discord) put the unread count there, e.g. "Atenção solicitada, 1 notifications"
   if ($cfg.titles.Count -and ($tick % 4 -eq 0)) {
-    $found = @{}
+    $found = @{}; $rawNow = @{}
     try {
       if (-not $script:uia) { Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes; $script:uia = $true }
       $A = [System.Windows.Automation.AutomationElement]
@@ -132,9 +132,14 @@ while ($true) {
         $c = $b.Current; $help = [string]$c.HelpText
         foreach ($name in $cfg.titles) {
           if ($c.Name -notlike ('*' + $name + '*')) { continue }
+          if ($help) { $rawNow[$name] = ($help -replace '[\\t\\r\\n]', ' ') }
+          # Seen on Lucas's PC: "No Notifications" (none) and "Atenção solicitada, 1 notifications". Other PCs
+          # may word it differently (other language, "one", no number for the first message), so: any number
+          # wins; "no / nenhum / sem" at the start means none; otherwise any unread or attention word means 1.
           $n = 0
-          if ($help -match '(\\d+)\\s*(notifica|notification|mensage|message)') { $n = [int]$matches[1] }
-          elseif ($help -match 'Aten|Attention') { $n = 1 }
+          if ($help -match '(\\d+)') { $n = [int]$matches[1] }
+          elseif ($help -match '^\\s*(no|nenhum|nenhuma|sem)\\b') { $n = 0 }
+          elseif ($help -match '\\b(uma|um|one)\\b|unread|n.o lid|nova|new|aten|attention|notifica|mensag|message') { $n = 1 }
           # the number bubble on the icon (WhatsApp) is a text inside the button, e.g. "3" or "99+"
           foreach ($k in $b.FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text)))) {
             if ($k.Current.Name -match '^\\s*(\\d+)\\+?\\s*$' -and [int]$matches[1] -gt $n) { $n = [int]$matches[1] }
@@ -146,6 +151,8 @@ while ($true) {
     foreach ($name in $cfg.titles) {
       $n = [int]$found[$name]
       if ($badges[$name] -ne $n) { $badges[$name] = $n; Out1 ("badge" + [char]9 + $name + [char]9 + $n) }
+      $r = [string]$rawNow[$name]
+      if ($script:raws[$name] -ne $r) { $script:raws[$name] = $r; Out1 ("badgeraw" + [char]9 + $name + [char]9 + $r) }
     }
   }
   if ($cfg.vol) { Start-Sleep -Milliseconds 250 } else { Start-Sleep -Milliseconds 700 }
@@ -173,6 +180,7 @@ function setWatch(cfg) {
       else if (parts[0] === 'vol') { const [v, m] = (parts[1] || '').split(' '); if (v !== '') win.webContents.send('volume', +v, m === '1'); }
       else if (parts[0] === 'title') win.webContents.send('win-title', parts[1].toLowerCase(), parts.slice(2).join('\t'));
       else if (parts[0] === 'badge') win.webContents.send('win-badge', parts[1].toLowerCase(), +parts[2] || 0);
+      else if (parts[0] === 'badgeraw') win.webContents.send('win-badge-raw', parts[1].toLowerCase(), parts.slice(2).join(' '));
     }
   });
   p.stderr.on('data', (d) => { if (process.env.SK80_DISPLAY2) try { fs.appendFileSync(path.join(__dirname, '..', 're', 'watch.err'), d); } catch (_) {} });
@@ -211,7 +219,31 @@ function startTheme() {
   const pref = (loadStore().settings || {}).theme || 'dark'; applyNativeTheme(pref);
   return pref === 'auto' ? (nativeTheme.shouldUseDarkColors ? 'dark' : 'light') : pref;
 }
-ipcMain.handle('theme:set', wrap((pref) => { if (['auto', 'dark', 'light'].includes(pref)) applyNativeTheme(pref); return true; }));
+// ---- key presses in any program (typing-speed effect, typing statistics) ----
+// uiohook-napi installs a low-level keyboard hook on its own thread. Only the key's name goes to the window
+// (never text, never which program); held keys repeating count once. Runs only while a feature needs it.
+let keyHook = null;
+function setKeyWatch(on) {
+  try {
+    if (on && !keyHook) {
+      const { uIOhook, UiohookKey } = require('uiohook-napi');
+      const names = Object.fromEntries(Object.entries(UiohookKey).map(([n, c]) => [c, n]));
+      const held = new Set();
+      uIOhook.on('keydown', (e) => {
+        if (held.has(e.keycode)) return; held.add(e.keycode);
+        if (win && !win.isDestroyed() && names[e.keycode]) win.webContents.send('key-press', names[e.keycode]);
+      });
+      uIOhook.on('keyup', (e) => held.delete(e.keycode));
+      uIOhook.start();
+      keyHook = uIOhook;
+    } else if (!on && keyHook) {
+      keyHook.stop(); keyHook.removeAllListeners(); keyHook = null;
+    }
+    return { on: !!keyHook };
+  } catch (e) { keyHook = null; return { on: false, error: e.message }; }
+}
+ipcMain.handle('keys:watch', wrap((on) => setKeyWatch(!!on)));
+ipcMain.handle('theme:set',wrap((pref) => { if (['auto', 'dark', 'light'].includes(pref)) applyNativeTheme(pref); return true; }));
 ipcMain.handle('store:get', wrap(() => loadStore()));
 ipcMain.handle('store:set', wrap((patch) => { const s = { ...loadStore(), ...patch }; saveStore(s); return true; }));
 ipcMain.handle('lighting', wrap((opts) => kb.setLighting(opts)));
@@ -418,5 +450,5 @@ function allowSystemAudio() {
   });
 }
 app.whenReady().then(() => { allowSystemAudio(); createWindow(); initUpdater(); startPowerWatch(); startBackups(); });
-app.on('before-quit', () => { quitting = true; setWatch({}); globalShortcut.unregisterAll(); });
+app.on('before-quit', () => { quitting = true; setWatch({}); setKeyWatch(false); globalShortcut.unregisterAll(); });
 app.on('window-all-closed', () => { kb.close(); app.quit(); });

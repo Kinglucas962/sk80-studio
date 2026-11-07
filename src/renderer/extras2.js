@@ -2,6 +2,12 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.4.0': [
+    'Luz por horário com nascer e pôr do sol: escolha a sua cidade em Ajustes. Um horário que começa no pôr do sol e diminui o brilho escurece aos poucos, durante uma hora.',
+    'Efeito novo “Digitação” (Iluminação › Efeitos do app): quanto mais rápido você digita, mais quente e forte fica a cor. Nada do que você digita é guardado.',
+    'Mais 8 jogos em Cor por tecla › Jogos: Roblox, GTA V, Apex Legends, Overwatch 2, Rocket League, Terraria, Valheim e Rust.',
+    'Aviso de mensagem: o Discord é reconhecido em mais casos, e Ajustes mostra o texto que o app lê na barra de tarefas.',
+  ],
   '1.3.0': [
     'Trocar de efeito sozinho (Iluminação): o teclado passa pelos efeitos que você marcar, de 1 minuto a 1 hora.',
     'Luz por jogo (Cor por tecla › Jogos): Minecraft, CS2, Valorant, Fortnite e League of Legends acendem só as teclas que o jogo usa. Dá para criar um perfil que entra sozinho quando o jogo abrir.',
@@ -110,8 +116,17 @@ let away = false, nightItem = null, nightKey = null, nightProfileId = null; // n
 function lightOverride() {
   if (away) return { off: true };
   if (nightItem && nightItem.action === 'off') return { off: true };
-  if (nightItem && nightItem.action === 'dim') return { bright: nightItem.bright };
+  if (nightItem && nightItem.action === 'dim') return { bright: dimNow(nightItem) };
   return null;
+}
+// a range that starts at sunset dims slowly: one brightness step at a time over its first hour
+const FADE_MIN = 60;
+function dimNow(it) {
+  if (it.from !== 'sunset') return it.bright;
+  const now = new Date(), since = ((now.getHours() * 60 + now.getMinutes() - toMin(it.from)) % 1440 + 1440) % 1440;
+  if (since >= FADE_MIN) return it.bright;
+  const base = state.paintActive ? state.paintBright : state.light.brightness;
+  return Math.round(base + (Math.min(base, it.bright) - base) * (since / FADE_MIN));
 }
 const lightsOff = () => !!(lightOverride() || {}).off;
 // send the saved lighting again, respecting the override (used after live layers stop, on wake, on schedule)
@@ -147,7 +162,29 @@ function idleTick(sec) {
   else if (away && sec < 15 && !locked) setAway(false, 'idle');
 }
 let locked = false;
-const toMin = (hhmm) => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
+// ---- sunrise / sunset (NOAA's simple formula, no internet; good to a few minutes) ----
+// returns minutes after local midnight, or null where the sun doesn't rise or set that day
+function sunMinutes(kind, date = new Date()) {
+  const { lat, lon } = state.settings.sun || {};
+  if (lat == null || lon == null) return null;
+  const rad = Math.PI / 180;
+  const day = Math.round((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(date.getFullYear(), 0, 0)) / 86400000);
+  const g = (2 * Math.PI / 365) * (day - 1 + 0.5);
+  const eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const c = Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl);
+  if (c < -1 || c > 1) return null;
+  const ha = Math.acos(c) / rad;
+  const utc = 720 - 4 * (lon + (kind === 'sunrise' ? ha : -ha)) - eq;
+  return Math.round((((utc - date.getTimezoneOffset()) % 1440) + 1440) % 1440);
+}
+const SUN_NAME = { sunrise: 'nascer do sol', sunset: 'pôr do sol' };
+const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+const toMin = (v) => {
+  if (SUN_NAME[v]) { const m = sunMinutes(v); return m == null ? (v === 'sunrise' ? 360 : 1080) : m; } // no city: 06:00 / 18:00
+  const [h, m] = String(v || '0:0').split(':').map(Number); return h * 60 + (m || 0);
+};
+const timeText = (v) => (SUN_NAME[v] ? `${SUN_NAME[v]} (${hhmm(toMin(v))})` : v);
 const inRange = (it, cur) => { const a = toMin(it.from), b = toMin(it.to); return a === b ? false : a < b ? cur >= a && cur < b : cur >= a || cur < b; };
 // the first range (top of the list) that contains the current time wins
 function scheduleNow() {
@@ -159,7 +196,7 @@ function scheduleNow() {
 function nightTick() {
   const hit = scheduleNow();
   const key = hit ? JSON.stringify([hit.id, hit.action, hit.bright, hit.profile]) : null;
-  if (key === nightKey) return;
+  if (key === nightKey) { if (hit && hit.action === 'dim') overrideChanged(); return; } // slow sunset dimming moves on its own
   nightKey = key; nightItem = hit;
   if (hit && hit.action === 'profile' && hit.profile && prof(hit.profile)) {
     if (nightProfileId !== hit.profile) { nightProfileId = hit.profile; switchProfile(hit.profile, false); }
@@ -227,11 +264,12 @@ function appFxSync() {
   liveSet('appfx', (map, t) => {
     const l = state.light, o = lightOverride();
     const k = (o && o.bright != null ? o.bright : l.brightness) / 5;
-    const c = appSim.frame(t, { mode: l.mode, rgb: hex2rgb(l.color), random: l.random, speed: l.speed, brightness: 5, direction: 0 });
+    const c = appSim.frame(t, { mode: l.mode, rgb: hex2rgb(l.color), random: l.random, speed: l.speed, brightness: 5, direction: 0, rate: window.SK_typeRate ? window.SK_typeRate() : 0 });
     for (const key of LAYOUT) map[key.idx] = (c[key.idx] || [0, 0, 0]).map((v) => v * k);
   });
 }
 window.appFxSync = appFxSync;
+window.SK_appSim = () => appSim; // real key presses go to it (extras3 typing)
 setInterval(appFxSync, 500);
 
 // Caps Lock
@@ -254,13 +292,17 @@ function onTitle(name, title) {
     const c = (t % 1) < 0.5 ? hex2rgb(state.settings.msg.color) : [0, 0, 0];
     if (state.settings.msg.key === 'all') for (const k of LAYOUT) map[k.idx] = c; else map[state.settings.msg.key] = c;
   } : null);
-  const showMsg = () => $('#msgBox').classList.toggle('off', !s.msg.on);
-  showMsg(); $('#msgOn').addEventListener('change', showMsg);
   renderMsgStatus();
 }
+// what each app's taskbar button says (Discord: "No Notifications", "1 notifications"...), shown so a PC
+// where the alert misbehaves can tell us its exact wording
+const badgeRaw = {};
 function renderMsgStatus() {
   const s = Object.entries(unread).filter(([, n]) => n > 0).map(([a, n]) => `${a}: ${n}`).join(' · ');
   const el = $('#msgStatus'); if (el) el.textContent = state.settings.msg.on ? (s ? 'Não lidas → ' + s : 'Nenhuma mensagem nova nesses programas agora.') : '';
+  const raw = $('#msgRaw'); if (!raw) return;
+  const r = Object.entries(badgeRaw).filter(([a, t]) => t && state.settings.msg.apps.includes(a)).map(([a, t]) => `${a}: “${t}”`).join(' · ');
+  raw.textContent = state.settings.msg.on && r ? 'Texto na barra de tarefas → ' + r : '';
 }
 
 function refreshWatch() {
@@ -481,7 +523,39 @@ function schedStatus() {
   $$('#ntList .sitem').forEach((r) => r.classList.toggle('now', !!hit && r.dataset.id === hit.id));
   if (!s.items.length) el.textContent = 'Nenhum horário ainda.';
   else if (!hit) el.textContent = 'Agora nenhum horário está valendo: a luz é a normal.';
-  else el.textContent = `Valendo agora: das ${hit.from} às ${hit.to}.`;
+  else el.textContent = `Valendo agora: de ${timeText(hit.from)} até ${timeText(hit.to)}.`;
+}
+// Brazilian state capitals for sunrise/sunset (rounded coordinates: a few minutes of difference at most)
+const SUN_CITIES = [
+  ['Aracaju', -10.91, -37.07], ['Belém', -1.46, -48.5], ['Belo Horizonte', -19.92, -43.94], ['Boa Vista', 2.82, -60.67],
+  ['Brasília', -15.79, -47.88], ['Campo Grande', -20.47, -54.62], ['Cuiabá', -15.6, -56.1], ['Curitiba', -25.43, -49.27],
+  ['Florianópolis', -27.6, -48.55], ['Fortaleza', -3.73, -38.52], ['Goiânia', -16.68, -49.25], ['João Pessoa', -7.12, -34.86],
+  ['Macapá', 0.03, -51.07], ['Maceió', -9.67, -35.74], ['Manaus', -3.12, -60.02], ['Natal', -5.79, -35.21],
+  ['Palmas', -10.18, -48.33], ['Porto Alegre', -30.03, -51.23], ['Porto Velho', -8.76, -63.9], ['Recife', -8.05, -34.88],
+  ['Rio Branco', -9.97, -67.81], ['Rio de Janeiro', -22.91, -43.17], ['Salvador', -12.97, -38.5], ['São Luís', -2.53, -44.3],
+  ['São Paulo', -23.55, -46.63], ['Teresina', -5.09, -42.8], ['Vitória', -20.32, -40.34],
+];
+function renderSun() {
+  const sun = state.settings.sun || {}, sel = $('#sunCity');
+  sel.innerHTML = '<option value="">Escolher a cidade…</option>' + SUN_CITIES.map(([n]) => `<option${n === sun.city ? ' selected' : ''}>${n}</option>`).join('')
+    + `<option value="*"${sun.city === '*' ? ' selected' : ''}>Outra (latitude e longitude)</option>`;
+  $('#sunCoords').hidden = sun.city !== '*';
+  if (sun.city === '*') { $('#sunLat').value = sun.lat ?? ''; $('#sunLon').value = sun.lon ?? ''; }
+  const r = sunMinutes('sunrise'), s = sunMinutes('sunset');
+  $('#sunToday').textContent = r == null || s == null ? 'Sem cidade: o app usa 06:00 e 18:00.' : `Hoje: nascer às ${hhmm(r)}, pôr às ${hhmm(s)}.`;
+}
+function initSun() {
+  if (!state.settings.sun) state.settings.sun = { city: '', lat: null, lon: null };
+  const sun = state.settings.sun, save = () => { persist(); renderSun(); renderSchedule(); scheduleRecheck(); };
+  $('#sunCity').onchange = (e) => {
+    const c = SUN_CITIES.find(([n]) => n === e.target.value);
+    sun.city = e.target.value; if (c) { sun.lat = c[1]; sun.lon = c[2]; } else if (!sun.city) { sun.lat = sun.lon = null; }
+    save();
+  };
+  const num = (v, lim) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && Math.abs(n) <= lim ? n : null; };
+  $('#sunLat').onchange = (e) => { sun.lat = num(e.target.value, 90); save(); };
+  $('#sunLon').onchange = (e) => { sun.lon = num(e.target.value, 180); save(); };
+  renderSun();
 }
 function renderSchedule() {
   const s = state.settings.schedule, list = $('#ntList'); list.innerHTML = '';
@@ -489,13 +563,22 @@ function renderSchedule() {
   s.items.forEach((it, i) => {
     const row = document.createElement('div');
     row.className = 'srow sitem'; row.dataset.id = it.id;
-    row.innerHTML = `<span class="inline-ctl sched-time">das <input type="time" class="tm" data-k="from" aria-label="Começa às"> às <input type="time" class="tm" data-k="to" aria-label="Termina às"></span>
+    // each end is a clock time or the sun: "sunrise" / "sunset" are stored instead of HH:MM
+    const when = (k, label) => `<select class="sm" data-k="${k}Kind" aria-label="${label}"><option value="time">hora</option><option value="sunrise">nascer do sol</option><option value="sunset">pôr do sol</option></select><input type="time" class="tm" data-k="${k}" aria-label="${label}">`;
+    row.innerHTML = `<span class="inline-ctl sched-time">de ${when('from', 'Começa')} até ${when('to', 'Termina')}</span>
       <span class="inline-ctl sched-act"><select data-k="action" aria-label="O que fazer">${ACTIONS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select>
       <select data-k="bright" class="sm" aria-label="Brilho" title="Brilho (0 é o mais fraco)">${[0, 1, 2, 3, 4].map((b) => `<option value="${b}">Brilho ${b}</option>`).join('')}</select>
       <select data-k="profile" aria-label="Perfil">${profOpts(it.profile)}</select></span>
       <button class="btn ghost small danger" data-k="del" title="Remover este horário" aria-label="Remover este horário">✕</button>`;
     const q = (k) => row.querySelector(`[data-k=${k}]`);
-    q('from').value = it.from; q('to').value = it.to; q('action').value = it.action; q('bright').value = String(it.bright ?? 1);
+    for (const k of ['from', 'to']) {
+      const sun = !!SUN_NAME[it[k]];
+      q(k + 'Kind').value = sun ? it[k] : 'time';
+      q(k).value = sun ? hhmm(toMin(it[k])) : it[k];
+      q(k).disabled = sun; q(k).title = sun ? 'Calculado pela cidade (embaixo da lista)' : '';
+      q(k + 'Kind').onchange = (e) => { it[k] = e.target.value === 'time' ? hhmm(toMin(it[k])) : e.target.value; renderSchedule(); schedSave(); };
+    }
+    q('action').value = it.action; q('bright').value = String(it.bright ?? 1);
     const showAct = () => { q('bright').style.display = it.action === 'dim' ? '' : 'none'; q('profile').style.display = it.action === 'profile' ? '' : 'none'; };
     showAct();
     q('from').onchange = (e) => { it.from = e.target.value || it.from; schedSave(); };
@@ -519,6 +602,7 @@ function initSchedule() {
     const rows = $$('#ntList .sitem'); const r = rows[rows.length - 1];
     if (r) { r.classList.add('flash'); r.querySelector('input').focus(); }
   };
+  initSun();
   renderSchedule();
   setInterval(schedStatus, 30000);
   onView.settings = renderSchedule; // profile names may have changed
@@ -596,6 +680,7 @@ function initExtras2() {
   window.sk.onCaps((on) => { capsOn = on; capsLayer(on); });
   window.sk.onTitle(onTitle);
   if (window.sk.onBadge) window.sk.onBadge(onBadge);
+  if (window.sk.onBadgeRaw) window.sk.onBadgeRaw((name, text) => { badgeRaw[name] = text; renderMsgStatus(); });
   refreshWatch();
   // key tester
   window.addEventListener('keydown', (e) => testerKey(e, 'down'), true);

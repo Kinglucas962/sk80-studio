@@ -432,9 +432,46 @@ function initCycle() {
   setInterval(cycleTick, 5000);
 }
 
+// ---- key presses from any program (main.js setKeyWatch): typing-speed effect (113) and statistics ----
+// uiohook key name → light index. Fn never reaches Windows, so it is never counted.
+const HOOK_IDX = (() => {
+  const m = { Shift: 73, ShiftRight: 84, Ctrl: 91, CtrlRight: 98, Alt: 93, AltRight: 95, Space: 94, Meta: 92 };
+  const lab = { Escape: 'Esc', Backquote: '~', Minus: '-', Equal: '=', Backspace: 'Backspace', Tab: 'Tab', BracketLeft: '[', BracketRight: ']',
+    Backslash: '\\', CapsLock: 'Caps', Semicolon: ';', Quote: "'", Enter: 'Enter', Comma: ',', Period: '.', Slash: '/',
+    ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Insert: 'Ins', Delete: 'Del', PageUp: 'PgUp', PageDown: 'PgDn' };
+  for (const k of LAYOUT) if (/^([A-Z0-9]|F\d+)$/.test(k.label)) lab[k.label] = k.label;
+  for (const [name, label] of Object.entries(lab)) { const k = LAYOUT.find((x) => x.label === label); if (k && m[name] == null) m[name] = k.idx; }
+  return m;
+})();
+const typeTimes = []; // press times (ms) of the last few seconds, for the speed
+window.SK_typeRate = () => { const now = performance.now(); while (typeTimes.length && now - typeTimes[0] > 3000) typeTimes.shift(); return typeTimes.length / 3; };
+// nothing is counted or saved: a press only feeds the speed (last 3 s) and the key's flash
+function onKeyPress(name) {
+  const idx = HOOK_IDX[name]; if (idx == null) return;
+  const now = performance.now(); typeTimes.push(now);
+  const t = now / 1000;
+  if (state.view === 'light') sim.press(idx, t);
+  const a = window.SK_appSim && window.SK_appSim(); if (a) a.press(idx, t);
+}
+// the hook runs only while the typing effect is chosen
+let keysOn = false;
+function keysSync() {
+  const want = !state.paintActive && state.light.mode === 113;
+  if (want === keysOn) return;
+  keysOn = want;
+  window.sk.keysWatch(want).then((r) => { if (want && !r.on) { keysOn = false; toast('Não consegui escutar as teclas: ' + (r.error || 'erro desconhecido')); } })
+    .catch((e) => { keysOn = false; toast('Não consegui escutar as teclas: ' + e.message); });
+}
+function initTyping() {
+  window.sk.onKeyPress(onKeyPress);
+  setInterval(keysSync, 1000);
+  keysSync();
+}
+
 function initExtras3() {
   initBackup();
   initCycle();
+  initTyping();
   if (!state.settings.volBar) state.settings.volBar = { on: true };
   if (!state.settings.music) state.settings.music = { mode: 'bars', rainbow: true, color: '#ff2a2a', sens: 1.2 };
   if (!Array.isArray(state.effects)) state.effects = [];

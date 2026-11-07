@@ -14,6 +14,7 @@
   const ramp = (stops, k) => { k = clamp(k) * (stops.length - 1); const i = Math.min(stops.length - 2, Math.floor(k)); return lerp(stops[i], stops[i + 1], k - i); };
   const FIRE = [[0, 0, 0], [120, 0, 0], [255, 40, 0], [255, 140, 0], [255, 230, 90]];
   const LAVA = [[60, 0, 0], [200, 10, 0], [255, 70, 0], [255, 170, 20]];
+  const TYPE = [[0, 60, 255], [130, 0, 255], [255, 0, 110], [255, 110, 0], [255, 230, 160]];
   const SEA = [[0, 10, 60], [0, 60, 170], [0, 160, 230], [150, 240, 255]];
 
   // App effects (ids 100+): the keyboard has no such mode, the app streams them while it is open.
@@ -85,6 +86,13 @@
           v = Math.max(v, clamp(1 - Math.hypot(cx - x, (cy - y) * 0.45) * 9) * glow);
         }
         return lerp([0, 5, 0], [190, 255, 40], v);
+      }
+      case 113: { // typing speed: the faster you type, the hotter and brighter the board; each pressed key flashes
+        const level = clamp((o.rate || 0) / 8); // 8 keys per second (~95 words per minute) = full
+        let flash = 0;
+        for (const p of sim.presses) if (p.idx === idx) flash = Math.max(flash, 1 - (t - p.t) / 0.45);
+        const base = mix(ramp(TYPE, level), 0.18 + 0.82 * level);
+        return lerp(base, [255, 255, 255], clamp(flash) * 0.85);
       }
       case 112: { // confetti: keys pop in random colours and fade out
         const r = t * sp * 0.5 + s * 7, e = Math.floor(r), ph = r - e;

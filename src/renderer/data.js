@@ -149,6 +149,7 @@ window.SK_MODE_INFO = {
   110: ['Céu escuro com relâmpagos de vez em quando.'],
   111: ['Pontinhos amarelo-esverdeados passeando e brilhando.'],
   112: ['Teclas acendem em cores aleatórias e apagam.'],
+  113: ['Quanto mais rápido você digita, mais quente e forte fica a cor. Cada tecla apertada pisca.'],
 };
 
 // [mode id, name, has direction] — direction confirmed in captures for modes 10, 11, 16, 18
@@ -162,5 +163,5 @@ window.SK_MODES = [
   [100, 'Fogo', false], [101, 'Aurora', false], [102, 'Matrix', false], [103, 'Estrelas', false],
   [104, 'Batimento', false], [105, 'Sirene', false], [106, 'Oceano', false], [107, 'Lava', false],
   [108, 'Plasma', false], [109, 'Cometa', false], [110, 'Tempestade', false], [111, 'Vagalumes', false],
-  [112, 'Confete', false],
+  [112, 'Confete', false], [113, 'Digitação', false],
 ];

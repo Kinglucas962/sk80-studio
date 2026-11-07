@@ -23,8 +23,7 @@
     <button class="nav" data-view="effects"><i>✦</i><span>Efeitos próprios<small>Crie sua animação</small></span></button>
     <button class="nav" data-view="music"><i>♫</i><span>Música<small>Luz que segue o som</small></span></button>
     <button class="nav" data-view="pomodoro"><i>◷</i><span>Pomodoro<small>Foco e pausa</small></span></button>
-    <button class="nav" data-view="tester"><i>✓</i><span>Testar teclas<small>Ache tecla com defeito</small></span></button>
-    <div class="grow"></div>
+    <button class="nav" data-view="tester"><i>✓</i><span>Testar teclas<small>Ache tecla com defeito</small></span></button>    <div class="grow"></div>
     <button class="nav" data-view="settings"><i>⚙</i><span>Ajustes<small>Luz automática e mais</small></span></button>
     <div class="updcard" id="updCard" hidden>
       <div class="updtop"><span class="updico" id="updIco"></span><div><b id="updCardTitle"></b><small id="updCardSub"></small></div></div>
@@ -385,6 +384,9 @@
           <div class="sub" id="ntBox">
             <div id="ntList" class="sched"></div>
             <div class="srow sched-foot"><small id="ntNow"></small><button class="btn small" id="ntAdd">+ Adicionar horário</button></div>
+            <div class="srow"><div><b>Cidade para o nascer e o pôr do sol</b><small id="sunToday"></small><small>Um horário que começa no pôr do sol e diminui o brilho escurece aos poucos, durante uma hora.</small></div>
+              <span class="inline-ctl"><select id="sunCity" aria-label="Cidade"></select>
+                <span id="sunCoords" hidden><input id="sunLat" class="sm" placeholder="Latitude" aria-label="Latitude" style="width:90px"> <input id="sunLon" class="sm" placeholder="Longitude" aria-label="Longitude" style="width:90px"></span></span></div>
           </div>
         </div>
 
@@ -404,7 +406,7 @@
             <span class="inline-ctl"><input type="color" id="msgColor" class="sm"><label class="toggle"><input type="checkbox" id="msgOn"><span></span></label></span></div>
           <div class="sub" id="msgBox">
             <div class="srow"><div><b>O que pisca</b><small>Uma tecla só ou o teclado inteiro.</small></div><select id="msgKey"></select></div>
-            <div class="srow col"><div><b>Programas</b><small id="msgStatus"></small></div>
+            <div class="srow col"><div><b>Programas</b><small id="msgStatus"></small><small id="msgRaw"></small></div>
               <div class="chips" id="msgApps"></div>
               <span class="inline-ctl"><select id="msgPick" class="apppick" aria-label="Escolher um programa aberto"><option value="">Escolher um programa aberto…</option></select><button class="btn ghost small" id="msgPickRefresh" title="Atualizar a lista de programas abertos">Atualizar lista</button></span>
               <span class="inline-ctl">ou digite o nome <input class="text" id="msgApp" placeholder="ex.: whatsapp"><button class="btn small" id="msgAdd">Adicionar</button></span></div>

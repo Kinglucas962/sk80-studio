@@ -229,6 +229,23 @@ const GAMES = [
     slot: byLabel('1', '2', '3', '4', '5', '6'), more: byLabel('F1', 'F2', 'F3', 'F4', 'F5', 'M', 'Tab', 'Esc') }],
   ['League of Legends', 'league of legends', { move: [SPACE, ...byLabel('Y')], act: byLabel('Q', 'W', 'E', 'R'),
     slot: byLabel('1', '2', '3', '4', '5', '6', '7'), more: [...byLabel('D', 'F', 'B', 'P', 'Tab', 'Esc'), LCTRL] }],
+  // added in 1.4.0; least sure about Rocket League, Overwatch and Valheim (fewer fixed keyboard defaults)
+  ['Roblox', 'robloxplayerbeta', { move: [...byLabel('W', 'A', 'S', 'D'), SPACE, LSHIFT], act: byLabel('E', 'F', '/'),
+    slot: byLabel('1', '2', '3', '4', '5', '6', '7', '8', '9', '0'), more: byLabel('Tab', 'Esc', 'I', 'O', '~') }],
+  ['GTA V', 'gta5', { move: [...byLabel('W', 'A', 'S', 'D'), SPACE, LSHIFT, LCTRL], act: byLabel('E', 'F', 'R', 'G', 'Q', 'Tab'),
+    slot: byLabel('1', '2', '3', '4', '5', '6', '7', '8', '9'), more: byLabel('M', 'H', 'C', 'Z', '↑', 'Esc') }],
+  ['Apex Legends', 'r5apex', { move: [...byLabel('W', 'A', 'S', 'D', 'C'), SPACE, LSHIFT, LCTRL], act: byLabel('Q', 'Z', 'E', 'R'),
+    slot: byLabel('1', '2', '3', '4'), more: byLabel('G', 'V', 'X', 'Tab', 'M', 'Esc') }],
+  ['Overwatch 2', 'overwatch', { move: [...byLabel('W', 'A', 'S', 'D'), SPACE, LCTRL], act: [LSHIFT, ...byLabel('E', 'Q', 'R')],
+    slot: byLabel('1', '2'), more: byLabel('V', 'Tab', 'Esc') }],
+  ['Rocket League', 'rocketleague', { move: byLabel('W', 'A', 'S', 'D'), act: [LSHIFT, SPACE],
+    slot: byLabel('1', '2', '3', '4'), more: byLabel('T', 'Tab', 'Esc') }],
+  ['Terraria', 'terraria', { move: [...byLabel('W', 'A', 'S', 'D'), SPACE], act: [...byLabel('E', 'R', 'H', 'J', 'B', 'T'), LSHIFT, LCTRL],
+    slot: byLabel('1', '2', '3', '4', '5', '6', '7', '8', '9', '0'), more: byLabel('M', 'Esc') }],
+  ['Valheim', 'valheim', { move: [...byLabel('W', 'A', 'S', 'D'), SPACE, LSHIFT, LCTRL], act: byLabel('E', 'Tab', 'F'),
+    slot: byLabel('1', '2', '3', '4', '5', '6', '7', '8'), more: byLabel('M', 'Esc') }],
+  ['Rust', 'rustclient', { move: [...byLabel('W', 'A', 'S', 'D'), SPACE, LSHIFT, LCTRL], act: byLabel('E', 'R', 'Tab', 'G', 'F'),
+    slot: byLabel('1', '2', '3', '4', '5', '6'), more: byLabel('T', 'F1', 'Esc') }],
 ];
 function gamePaint(groups) {
   const paint = {};

@@ -133,7 +133,7 @@ function renderBoard() {
 function animate() {
   if (state.view === 'light') {
     const l = state.light;
-    const colors = sim.frame(performance.now() / 1000, { mode: l.mode, rgb: hex2rgb(l.color), random: l.random, speed: l.speed, brightness: l.brightness, direction: l.direction });
+    const colors = sim.frame(performance.now() / 1000, { mode: l.mode, rgb: hex2rgb(l.color), random: l.random, speed: l.speed, brightness: l.brightness, direction: l.direction, rate: window.SK_typeRate ? window.SK_typeRate() : 0 });
     for (const el of $$('.key')) {
       const c = colors[+el.dataset.idx] || [0, 0, 0];
       const mx = Math.max(c[0], c[1], c[2]), a = mx / 255;
@@ -160,7 +160,7 @@ const VIEWS = {
   effects: ['Efeitos próprios', 'Pinte quadros no teclado desenhado e toque em loop no teclado.'],
   music: ['Música', 'O teclado dança com o som que está tocando no PC.'],
   settings: ['Ajustes', 'Luz automática, atalho e opções do aplicativo.'],
-  tester: ['Testar teclas', 'Aperte cada tecla do teclado. As que funcionam ficam verdes; clique duplo fica vermelho.'],
+  tester: ['Testar teclas','Aperte cada tecla do teclado. As que funcionam ficam verdes; clique duplo fica vermelho.'],
 };
 const NO_BOARD = ['macros', 'screen', 'profiles', 'settings', 'pomodoro', 'music'];
 const PAINT_VIEWS = ['paint', 'effects']; // views where clicking the drawn keys paints
@@ -744,8 +744,7 @@ async function pollConn() {
   if (store.activeProfile) state.activeProfile = store.activeProfile;
   if (store.baseProfile) state.baseProfile = store.baseProfile;
   if (store.settings) Object.assign(state.settings, store.settings);
-  if (store.effects) state.effects = store.effects;
-  if (store.paint) state.paint = store.paint;
+  if (store.effects) state.effects = store.effects;  if (store.paint) state.paint = store.paint;
   if (store.paintBright != null) state.paintBright = store.paintBright;
   if (store.brush) state.brush = store.brush;
   if (store.keymap) state.keymap = { top: {}, fn: {}, ...store.keymap };
