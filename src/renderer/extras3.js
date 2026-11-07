@@ -194,7 +194,7 @@ function renderFrames() {
   if (!e) return;
   e.frames.forEach((f, i) => {
     const c = document.createElement('button'); c.className = 'fxframe' + (i === fx.frame ? ' on' : '');
-    c.innerHTML = '<div class="gmini">' + LAYOUT.map((k) => `<i style="left:${((k.x - 72) / 6.6).toFixed(1)}%;top:${((k.y - 22) / 2.7).toFixed(1)}%;width:${(k.w / 6.6).toFixed(1)}%;background:${f[k.idx] || '#2a2f39'}"></i>`).join('') + `</div><span>${i + 1}</span>`;
+    c.innerHTML = '<div class="gmini">' + LAYOUT.map((k) => `<i style="left:${((k.x - 72) / 6.6).toFixed(1)}%;top:${((k.y - 22) / 2.7).toFixed(1)}%;width:${(k.w / 6.6).toFixed(1)}%;background:${f[k.idx] || 'var(--mini-off)'}"></i>`).join('') + `</div><span>${i + 1}</span>`;
     c.onclick = () => { fx.frame = i; if (fx.preview) fxPreview(false); renderBoard(); renderFrames(); };
     box.appendChild(c);
   });
@@ -248,7 +248,60 @@ function initFx() {
   renderFx();
 }
 
+// ====================== daily backup ======================
+// main.js makes the copy; here: on/off, list, "back up now" and restore.
+function bkWhen(b) {
+  const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(b.name);
+  const t = new Date(b.time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  if (!m) return `Antes de restaurar · ${new Date(b.time).toLocaleDateString('pt-BR')} ${t}`;
+  const d = new Date(+m[1], m[2] - 1, +m[3]), today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = Math.round((today - d) / 864e5);
+  const label = days === 0 ? 'Hoje' : days === 1 ? 'Ontem' : d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' });
+  return `${label[0].toUpperCase()}${label.slice(1)} · ${t}`;
+}
+async function renderBackups() {
+  const box = $('#bkList'); if (!box) return;
+  let res; try { res = await window.sk.backupList(); } catch (e) { $('#bkStatus').textContent = 'Não consegui ler os backups: ' + e.message; return; }
+  const list = res.list;
+  $('#bkStatus').textContent = list.length ? `${list.length} cópia(s).` : (state.settings.backup === false ? 'Backup diário desligado.' : 'A primeira cópia é feita alguns segundos depois de abrir o app.');
+  box.innerHTML = '';
+  for (const b of list) {
+    const row = document.createElement('div'); row.className = 'bkrow';
+    const kb = Math.max(1, Math.round(b.size / 1024));
+    row.innerHTML = `<div class="grow"><b></b><small></small></div><button class="btn ghost small">Restaurar</button>`;
+    row.querySelector('b').textContent = bkWhen(b);
+    row.querySelector('small').textContent = `${b.profiles || 1} perfil(is) · ${b.gifs} GIF(s) · ${kb} KB`;
+    row.querySelector('button').onclick = () => restoreBackup(b);
+    box.appendChild(row);
+  }
+}
+async function restoreBackup(b) {
+  if (!confirm(`Voltar para o backup de ${bkWhen(b)}?\n\nPerfis, cores, teclas, macros, efeitos e GIFs voltam a ser como estavam nesse dia, e tudo é mandado de novo para o teclado.\nAntes, o app guarda uma cópia de como está agora (aparece como "Antes de restaurar").`)) return;
+  try {
+    await window.sk.backupRestore(b.file);
+    try { sessionStorage.setItem('sk-restored', bkWhen(b)); } catch (_) {}
+    location.reload();
+  } catch (e) { toast('Não consegui restaurar: ' + e.message); }
+}
+function initBackup() {
+  $('#bkOn').checked = state.settings.backup !== false;
+  $('#bkOn').onchange = (e) => { state.settings.backup = e.target.checked; persist(); renderBackups(); };
+  $('#bkFolder').onclick = () => window.sk.backupFolder();
+  $('#bkNow').onclick = async () => {
+    persist(); await new Promise((r) => setTimeout(r, 500)); // let the last change reach the file first
+    try { await window.sk.backupNow(); toast('Backup feito.'); } catch (e) { toast(e.message); }
+    renderBackups();
+  };
+  const prev = onView.settings; onView.settings = () => { prev && prev(); renderBackups(); };
+  let restored = null; try { restored = sessionStorage.getItem('sk-restored'); sessionStorage.removeItem('sk-restored'); } catch (_) {}
+  if (restored) {
+    toast('Backup restaurado (' + restored + '). Mandando para o teclado…');
+    Promise.resolve(pushToKeyboard()).then(() => toast('Pronto: teclado igual ao backup.')).catch((e) => toast('Restaurado no app, mas o teclado não recebeu: ' + e.message));
+  }
+}
+
 function initExtras3() {
+  initBackup();
   if (!state.settings.volBar) state.settings.volBar = { on: true };
   if (!state.settings.music) state.settings.music = { mode: 'bars', rainbow: true, color: '#ff2a2a', sens: 1.2 };
   if (!Array.isArray(state.effects)) state.effects = [];

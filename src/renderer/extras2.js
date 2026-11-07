@@ -2,6 +2,14 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.1': [
+    'Visual novo, com tema claro: clique no sol/lua no topo ou escolha em Ajustes › Aparência (Automático segue o Windows).',
+    'Buscar (Ctrl + K): digite “GIF”, “backup” ou “noite” e vá direto para a tela ou o ajuste.',
+    'A cor do seu teclado agora ilumina o app: o brilho atrás do teclado desenhado e as marcações seguem a luz.',
+    'Backup diário: uma vez por dia o app guarda uma cópia de tudo (perfis, cores, teclas, macros, efeitos e GIFs). Em Ajustes dá para ver as cópias e voltar para qualquer uma.',
+    'As animações do app funcionam mesmo com as animações do Windows desligadas.',
+    'O tempo de cada quadro em Efeitos próprios não sai mais para fora do quadro.',
+  ],
   '1.1.0': [
     'Desfazer e refazer (Ctrl + Z / Ctrl + Y, ou os botões no topo) na pintura, teclas, macros e efeitos.',
     'Efeitos próprios: pinte quadros no teclado desenhado e toque a animação em loop.',
@@ -248,7 +256,7 @@ function renderTester() {
 let galleryList = null;
 function miniPreview(d) {
   if (d.paintActive) {
-    return '<div class="gmini">' + LAYOUT.map((k) => `<i style="left:${((k.x - 72) / 6.6).toFixed(1)}%;top:${((k.y - 22) / 2.7).toFixed(1)}%;width:${(k.w / 6.6).toFixed(1)}%;background:${d.paint[k.idx] || '#2a2f39'}"></i>`).join('') + '</div>';
+    return '<div class="gmini">' + LAYOUT.map((k) => `<i style="left:${((k.x - 72) / 6.6).toFixed(1)}%;top:${((k.y - 22) / 2.7).toFixed(1)}%;width:${(k.w / 6.6).toFixed(1)}%;background:${d.paint[k.idx] || 'var(--mini-off)'}"></i>`).join('') + '</div>';
   }
   const mode = (window.SK_MODES.find(([id]) => id === d.light.mode) || [0, '?'])[1];
   const bg = d.light.random ? 'linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f)' : d.light.color;
@@ -308,11 +316,13 @@ async function restoreTft() {
 }
 
 // ====================== what's new ======================
-async function whatsNew() {
+// force = opened by hand (quick search): show the notes of this version, or the newest ones
+async function whatsNew(force) {
   const info = await window.sk.appInfo().catch(() => null); if (!info) return;
-  const v = info.version, seen = state.settings.seenVersion;
+  let v = info.version; const seen = state.settings.seenVersion;
   state.settings.seenVersion = v; persist();
-  if (!seen || seen === v || !CHANGES[v]) return;
+  if (force) { if (!CHANGES[v]) v = Object.keys(CHANGES)[0]; }
+  else if (!seen || seen === v || !CHANGES[v]) return;
   $('#newsTitle').textContent = `Novidades da versão ${v}`;
   $('#newsList').innerHTML = CHANGES[v].map((x) => `<li>${esc(x)}</li>`).join('');
   $('#newsModal').classList.add('show');
@@ -411,3 +421,4 @@ function initExtras2() {
   restoreTft();
 }
 window.SK_EXTRAS.push(initExtras2);
+window.SK_whatsNew = whatsNew;

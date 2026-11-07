@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, dialog, Tray, Menu, nativeImage, Notification, powerMonitor, globalShortcut, shell, net, session, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, Tray, Menu, nativeImage, Notification, powerMonitor, globalShortcut, shell, net, session, desktopCapturer, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn, execFile } = require('child_process');
@@ -43,7 +43,7 @@ function createWindow() {
   win = new BrowserWindow({
     ...bounds,
     minWidth: 1080, minHeight: 720,
-    backgroundColor: '#0d0f12',
+    backgroundColor: startTheme() === 'light' ? '#e8ebf0' : '#0e1014',
     title: 'SK80 Studio',
     autoHideMenuBar: true,
     show: !startHidden,
@@ -175,6 +175,13 @@ const wrap = (fn) => async (_e, ...args) => {
 };
 
 ipcMain.handle('status', wrap(() => kb.connected()));
+// ---- theme: the window frame follows the app theme ('auto' follows Windows) ----
+function applyNativeTheme(pref) { nativeTheme.themeSource = pref === 'light' ? 'light' : pref === 'auto' ? 'system' : 'dark'; }
+function startTheme() {
+  const pref = (loadStore().settings || {}).theme || 'dark'; applyNativeTheme(pref);
+  return pref === 'auto' ? (nativeTheme.shouldUseDarkColors ? 'dark' : 'light') : pref;
+}
+ipcMain.handle('theme:set', wrap((pref) => { if (['auto', 'dark', 'light'].includes(pref)) applyNativeTheme(pref); return true; }));
 ipcMain.handle('store:get', wrap(() => loadStore()));
 ipcMain.handle('store:set', wrap((patch) => { const s = { ...loadStore(), ...patch }; saveStore(s); return true; }));
 ipcMain.handle('lighting', wrap((opts) => kb.setLighting(opts)));
@@ -301,6 +308,73 @@ ipcMain.handle('gif:delete', wrap((id) => {
   writeGifs(l.filter((x) => x.id !== id)); return true;
 }));
 
+// ---- daily backup: userData/backups/sk80-YYYY-MM-DD.json (store + GIF index); GIF files go to a shared pool ----
+const BACKUP_KEEP = 14;
+const backupDir = () => path.join(app.getPath('userData'), 'backups');
+const poolDir = () => path.join(backupDir(), 'gifs');
+const dayStamp = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function listBackups() {
+  try {
+    return fs.readdirSync(backupDir()).filter((f) => /^sk80-.+\.json$/.test(f)).sort().reverse().map((f) => {
+      const full = path.join(backupDir(), f), st = fs.statSync(full);
+      let profiles = 0, gifs = 0;
+      try { const b = JSON.parse(fs.readFileSync(full, 'utf8')); profiles = (b.store.profiles || []).length; gifs = (b.gifs || []).length; } catch (_) {}
+      return { file: f, name: f.slice(5, -5), time: st.mtimeMs, size: st.size, profiles, gifs };
+    });
+  } catch (_) { return []; }
+}
+function makeBackup(name) {
+  const store = loadStore();
+  if (!Object.keys(store).length) return null; // nothing saved yet
+  const gifs = readGifs();
+  fs.mkdirSync(poolDir(), { recursive: true });
+  for (const g of gifs) { // files are named by content hash, so each one is copied only once
+    const dst = path.join(poolDir(), g.file);
+    if (!fs.existsSync(dst)) { try { fs.copyFileSync(path.join(gifDir(), g.file), dst); } catch (_) {} }
+  }
+  const file = `sk80-${name}.json`;
+  fs.writeFileSync(path.join(backupDir(), file), JSON.stringify({ app: 'sk80-studio', version: app.getVersion(), made: Date.now(), store, gifs }));
+  pruneBackups();
+  return file;
+}
+function pruneBackups() {
+  const all = listBackups(), daily = all.filter((b) => /^\d{4}-\d\d-\d\d$/.test(b.name)), extra = all.filter((b) => !daily.includes(b));
+  // keeps the newest 14 daily copies and the newest 5 "before restore" copies
+  for (const b of [...daily.slice(BACKUP_KEEP), ...extra.slice(5)]) { try { fs.unlinkSync(path.join(backupDir(), b.file)); } catch (_) {} }
+  const used = new Set();
+  for (const b of listBackups()) { try { for (const g of JSON.parse(fs.readFileSync(path.join(backupDir(), b.file), 'utf8')).gifs || []) used.add(g.file); } catch (_) {} }
+  try { for (const f of fs.readdirSync(poolDir())) if (!used.has(f)) fs.unlinkSync(path.join(poolDir(), f)); } catch (_) {}
+}
+function dailyBackup() {
+  try {
+    if (loadStore().settings?.backup === false) return;
+    const name = dayStamp();
+    if (!fs.existsSync(path.join(backupDir(), `sk80-${name}.json`))) makeBackup(name);
+  } catch (e) { console.error('backup', e); }
+}
+function startBackups() { setTimeout(dailyBackup, 20000); setInterval(dailyBackup, 60 * 60 * 1000); }
+ipcMain.handle('backup:list', wrap(() => ({ list: listBackups(), dir: backupDir() })));
+ipcMain.handle('backup:now', wrap(() => {
+  const now = new Date(), name = `${dayStamp(now)}`;
+  const f = makeBackup(name); if (!f) throw new Error('Ainda não há nada salvo para copiar.'); return f;
+}));
+ipcMain.handle('backup:restore', wrap((file) => {
+  if (!/^sk80-[\w-]+\.json$/.test(file)) throw new Error('Backup inválido');
+  const b = JSON.parse(fs.readFileSync(path.join(backupDir(), file), 'utf8'));
+  if (!b || b.app !== 'sk80-studio' || !b.store) throw new Error('Esse arquivo não é um backup do SK80 Studio.');
+  const d = new Date();
+  makeBackup(`antes-de-restaurar-${dayStamp(d)}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}`);
+  saveStore(b.store);
+  const gifs = (b.gifs || []).filter((g) => {
+    const dst = path.join(gifDir(), g.file);
+    if (fs.existsSync(dst)) return true;
+    try { fs.mkdirSync(gifDir(), { recursive: true }); fs.copyFileSync(path.join(poolDir(), g.file), dst); return true; } catch (_) { return false; }
+  });
+  writeGifs(gifs);
+  return true;
+}));
+ipcMain.handle('backup:folder', wrap(() => { fs.mkdirSync(backupDir(), { recursive: true }); shell.openPath(backupDir()); return true; }));
+
 ipcMain.handle('screen', wrap((frames, delays) => {
   kb.onProgress = (i, n) => win && win.webContents.send('screen-progress', i, n);
   return kb.uploadScreen(frames.map((f) => Buffer.from(f)), delays);
@@ -313,6 +387,6 @@ function allowSystemAudio() {
     desktopCapturer.getSources({ types: ['screen'] }).then((s) => cb({ video: s[0], audio: 'loopback' })).catch(() => cb({}));
   });
 }
-app.whenReady().then(() => { allowSystemAudio(); createWindow(); initUpdater(); startPowerWatch(); });
+app.whenReady().then(() => { allowSystemAudio(); createWindow(); initUpdater(); startPowerWatch(); startBackups(); });
 app.on('before-quit', () => { quitting = true; setWatch({}); globalShortcut.unregisterAll(); });
 app.on('window-all-closed', () => { kb.close(); app.quit(); });

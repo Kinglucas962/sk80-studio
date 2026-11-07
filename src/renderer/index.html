@@ -5,10 +5,13 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'">
   <title>SK80 Studio</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="theme-boot.js"></script>
 </head>
 <body>
   <nav class="rail">
     <div class="brand"><img class="logo" src="icon.png" alt=""><div><b>SK80</b><small>Studio</small></div></div>
+    <button class="quick" id="quickBtn" title="Buscar uma tela ou ajuste"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Buscar</span><kbd>Ctrl K</kbd></button>
+    <div class="navpill" id="navPill" aria-hidden="true"></div>
     <div class="navgroup">No teclado</div>
     <button class="nav active" data-view="light"><i>◐</i><span>Iluminação<small>Efeitos de luz</small></span></button>
     <button class="nav" data-view="paint"><i>▦</i><span>Cor por tecla<small>Pinte tecla por tecla</small></span></button>
@@ -34,11 +37,12 @@
 
   <main>
     <header class="top">
-      <div>
+      <div class="titles" id="titles">
         <h1 id="viewTitle">Iluminação</h1>
         <p id="viewSub"></p>
       </div>
       <div class="topright">
+        <button class="btn ghost themebtn" id="themeBtn" title="Trocar entre tema claro e escuro"></button>
         <div class="histbtns"><button class="btn ghost small" id="undoBtn" title="Desfazer (Ctrl + Z)" disabled>↶ Desfazer</button><button class="btn ghost small" id="redoBtn" title="Refazer (Ctrl + Y)" disabled>↷</button></div>
         <label class="profpick" title="Tudo que você muda fica salvo neste perfil">Perfil em uso <select id="profSel"></select></label>
         <div class="sync" id="sync"><span class="sdot"></span><span id="syncText">Tudo salvo no teclado</span></div>
@@ -311,7 +315,7 @@
             <button class="btn ghost small" id="fxLeft" title="Mover para a esquerda">◀</button><button class="btn ghost small" id="fxRight" title="Mover para a direita">▶</button>
             <button class="btn ghost small danger" id="fxDelF">Apagar quadro</button>
           </div>
-          <div class="slider"><span>Cada quadro</span><input type="range" id="fxSpeed" min="50" max="2000" step="50" value="300"><output id="fxSpeedOut" style="width:70px">300 ms</output></div>
+          <div class="slider"><span>Cada quadro</span><input type="range" id="fxSpeed" min="50" max="2000" step="50" value="300"><output id="fxSpeedOut" style="white-space:nowrap">300 ms</output></div>
           <p class="hint" id="fxInfo"></p>
           <p class="hint">“Tocar no teclado” usa as cores ao vivo: o efeito roda enquanto o app estiver aberto (ou na bandeja). Parar volta para a sua luz salva.</p>
         </div>
@@ -352,6 +356,16 @@
     <!-- AJUSTES -->
     <section class="view" id="view-settings">
       <div class="settings">
+        <h2>Aparência</h2>
+        <div class="slist">
+          <div class="srow"><div><b>Tema</b><small>Automático segue o modo claro ou escuro do Windows.</small></div>
+            <div class="themes" id="themePick" role="radiogroup" aria-label="Tema">
+              <button data-theme="auto" role="radio"><i class="t-auto"></i>Automático</button>
+              <button data-theme="dark" role="radio"><i class="t-dark"></i>Escuro</button>
+              <button data-theme="light" role="radio"><i class="t-light"></i>Claro</button>
+            </div></div>
+        </div>
+
         <h2>Luz automática</h2>
         <div class="slist">
           <div class="srow"><div><b>Apagar quando bloquear o PC</b><small>Apaga com Win + L e acende de novo quando você desbloqueia.</small></div>
@@ -390,6 +404,15 @@
           </div>
         </div>
         <p class="hint">As luzes de aviso funcionam melhor com o efeito Estático ou com Cor por tecla. Com efeitos animados, só a tecla do aviso é controlada, e o resto pode se comportar diferente.</p>
+
+        <h2>Backup</h2>
+        <div class="slist">
+          <div class="srow"><div><b>Backup diário</b><small>Uma vez por dia o app guarda uma cópia dos perfis, cores, teclas, macros, efeitos e GIFs da telinha. Ficam as últimas 14.</small></div>
+            <label class="toggle"><input type="checkbox" id="bkOn"><span></span></label></div>
+          <div class="srow col"><div class="row"><div class="grow"><b>Cópias guardadas</b><small id="bkStatus"></small></div>
+            <button class="btn ghost small" id="bkFolder">Abrir pasta</button><button class="btn ghost small" id="bkNow">Fazer backup agora</button></div>
+            <div id="bkList" class="bklist"></div></div>
+        </div>
 
         <h2>Aplicativo</h2>
         <div class="slist">
@@ -438,5 +461,13 @@
   <script src="extras.js" charset="utf-8"></script>
   <script src="extras2.js" charset="utf-8"></script>
   <script src="extras3.js" charset="utf-8"></script>
+  <div class="pal" id="pal" role="dialog" aria-modal="true" aria-label="Buscar">
+    <div class="pal-card">
+      <div class="pal-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="palInput" placeholder="Para onde você quer ir? Ex.: GIF, backup, noite" autocomplete="off" spellcheck="false"></div>
+      <div class="pal-list" id="palList" role="listbox"></div>
+      <div class="pal-foot"><span><kbd>↑</kbd> <kbd>↓</kbd> escolher</span><span><kbd>Enter</kbd> abrir</span><span><kbd>Esc</kbd> fechar</span></div>
+    </div>
+  </div>
+  <script src="ui.js" charset="utf-8"></script>
 </body>
 </html>
