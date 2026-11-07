@@ -2,6 +2,12 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.2': [
+    'Luz por horário: coloque quantos horários quiser, cada um com o que a luz faz (diminuir o brilho, apagar ou usar um perfil). Fica em Ajustes › Luz automática.',
+    'Perfil exportado leva junto o GIF da telinha. Quem importa ou baixa da galeria escolhe aplicar com ou sem o GIF.',
+    'Efeitos próprios: arraste os quadros para mudar a ordem.',
+    'O ícone do botão de tema ficou centralizado.',
+  ],
   '1.1.1': [
     'Visual novo, com tema claro: clique no sol/lua no topo ou escolha em Ajustes › Aparência (Automático segue o Windows).',
     'Buscar (Ctrl + K): digite “GIF”, “backup” ou “noite” e vá direto para a tela ou o ajuste.',
@@ -42,12 +48,18 @@ const CHANGES = {
 };
 const DEFAULT_SETTINGS = {
   offOnLock: true, idleMin: 0,
-  night: { on: false, from: '23:00', to: '07:00', action: 'dim', bright: 1, profile: null },
+  // light by schedule: any number of time ranges, each with its own action (older saves had one "night" range)
+  schedule: { on: false, items: [{ id: 's1', from: '23:00', to: '07:00', action: 'dim', bright: 1, profile: null }] },
   hotkey: 'Control+Alt+P',
   caps: { on: false, color: '#00e5ff' },
   msg: { on: false, apps: ['whatsapp', 'discord', 'telegram'], key: 1, color: '#25d366' },
 };
 function settingsDefaults() {
+  const old = state.settings.night;
+  if (old && !state.settings.schedule) { // 1.1.1 and older: one night range becomes the first schedule item
+    state.settings.schedule = { on: !!old.on, items: [{ id: 's1', from: old.from || '23:00', to: old.to || '07:00', action: old.action || 'dim', bright: old.bright ?? 1, profile: old.profile || null }] };
+  }
+  delete state.settings.night;
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
     if (state.settings[k] === undefined) state.settings[k] = clone(v);
     else if (v && typeof v === 'object' && !Array.isArray(v)) state.settings[k] = { ...clone(v), ...state.settings[k] };
@@ -55,11 +67,11 @@ function settingsDefaults() {
 }
 
 // ====================== light override: away (lock/idle) and night ======================
-let away = false, nightState = null, nightProfileId = null;
+let away = false, nightItem = null, nightKey = null, nightProfileId = null; // nightItem = schedule range in effect now
 function lightOverride() {
   if (away) return { off: true };
-  if (nightState === 'off') return { off: true };
-  if (nightState === 'dim') return { bright: state.settings.night.bright };
+  if (nightItem && nightItem.action === 'off') return { off: true };
+  if (nightItem && nightItem.action === 'dim') return { bright: nightItem.bright };
   return null;
 }
 const lightsOff = () => !!(lightOverride() || {}).off;
@@ -98,20 +110,28 @@ function idleTick(sec) {
 }
 let locked = false;
 const toMin = (hhmm) => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
+const inRange = (it, cur) => { const a = toMin(it.from), b = toMin(it.to); return a === b ? false : a < b ? cur >= a && cur < b : cur >= a || cur < b; };
+// the first range (top of the list) that contains the current time wins
+function scheduleNow() {
+  const s = state.settings.schedule;
+  if (!s || !s.on) return null;
+  const now = new Date(), cur = now.getHours() * 60 + now.getMinutes();
+  return s.items.find((it) => inRange(it, cur)) || null;
+}
 function nightTick() {
-  const n = state.settings.night;
-  let want = null;
-  if (n.on) {
-    const now = new Date(), cur = now.getHours() * 60 + now.getMinutes(), a = toMin(n.from), b = toMin(n.to);
-    const inside = a <= b ? cur >= a && cur < b : cur >= a || cur < b;
-    if (inside) want = n.action;
+  const hit = scheduleNow();
+  const key = hit ? JSON.stringify([hit.id, hit.action, hit.bright, hit.profile]) : null;
+  if (key === nightKey) return;
+  nightKey = key; nightItem = hit;
+  if (hit && hit.action === 'profile' && hit.profile && prof(hit.profile)) {
+    if (nightProfileId !== hit.profile) { nightProfileId = hit.profile; switchProfile(hit.profile, false); }
+    lastOverrideKey = ''; overrideChanged(); return;
   }
-  if (want === nightState) return;
-  const prev = nightState; nightState = want;
-  if (want === 'profile' && n.profile && prof(n.profile)) { nightProfileId = n.profile; switchProfile(n.profile, false); return; }
-  if (prev === 'profile') { nightProfileId = null; switchProfile(state.baseProfile, false); }
+  // a schedule profile was in use (range ended, was removed or changed to another action): back to the chosen one
+  if (nightProfileId) { nightProfileId = null; switchProfile(state.baseProfile, false); }
   overrideChanged();
 }
+const scheduleRecheck = () => { nightKey = undefined; nightTick(); };
 
 // ====================== live layer: re-sends colours every ~95 ms while any layer is on ======================
 const Live = { layers: {}, running: false };
@@ -277,11 +297,60 @@ async function loadGallery() {
       const o = g.data || JSON.parse(await window.sk.galleryGet(g.file));
       if (o.kind !== 'profile' || !o.data) { toast('Perfil inválido'); return; }
       const p = { id: uid(), name: o.name || g.name, apps: [], data: o.data };
+      const gif = await askProfileGif(o); if (gif === undefined) return;
+      p.gif = gif;
       state.profiles.push(p); editId = p.id; profilesChanged();
-      toast(`“${p.name}” baixado. Clique em “Usar este perfil” para mandar ao teclado.`);
+      toast(`“${p.name}” baixado${gif ? ' com o GIF' : ''}. Clique em “Usar este perfil” para mandar ao teclado.`);
     };
     box.appendChild(c);
   }
+}
+
+// ====================== GIF inside a shared profile ======================
+const toB64 = (u8) => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const fromB64 = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+async function profileGifForExport(p) {
+  let id = p.gif || (p.id === state.activeProfile ? state.settings.lastGif : null);
+  if (!id && p.id === state.activeProfile) { // older saves don't know the last GIF: the most recently sent one
+    const list = await window.sk.gifList().catch(() => []);
+    const g = list.filter((x) => x.lastSent).sort((a, b) => b.lastSent - a.lastSent)[0];
+    id = g && g.id;
+  }
+  if (!id) return null;
+  const { meta, bytes } = await window.sk.gifRead(id);
+  return { name: meta.name, type: meta.type, fit: meta.fit, speed: meta.speed, bg: meta.bg, crop: meta.crop, range: meta.range, data: toB64(new Uint8Array(bytes)) };
+}
+// Shared profile with a GIF: ask "with or without". Resolves to the library id (with), null (without
+// or no GIF in the file) or undefined (closed: cancel).
+function askProfileGif(o) {
+  const g = o.gif;
+  if (!g || !g.data) return Promise.resolve(null);
+  let bytes; try { bytes = fromB64(g.data); } catch (_) { return Promise.resolve(null); }
+  const url = URL.createObjectURL(new Blob([bytes], { type: g.type || 'image/gif' }));
+  const m = $('#gifAsk');
+  $('#gifAskName').textContent = o.name || 'Perfil';
+  $('#gifAskImg').src = url; $('#gifAskImg').style.objectFit = g.fit === 'contain' ? 'contain' : g.fit === 'stretch' ? 'fill' : 'cover';
+  $('#gifAskImg').parentElement.style.background = g.bg || '#000';
+  $('#gifAskInfo').textContent = `“${g.name || 'GIF'}” · ${Math.max(1, Math.round(bytes.length / 1024))} KB`;
+  m.classList.add('show');
+  return new Promise((resolve) => {
+    const done = async (v) => {
+      m.classList.remove('show'); URL.revokeObjectURL(url);
+      removeEventListener('keydown', onEsc, true);
+      if (v !== 'with') return resolve(v === 'without' ? null : undefined);
+      try {
+        const saved = await window.sk.gifSave({ name: g.name || o.name || 'GIF', type: g.type || 'image/gif', fit: g.fit, speed: g.speed, bg: g.bg, crop: g.crop, range: g.range }, bytes);
+        resolve(saved.id);
+      } catch (e) { toast('Não consegui guardar o GIF: ' + e.message + '. O perfil entra sem ele.'); resolve(null); }
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done('cancel'); } };
+    addEventListener('keydown', onEsc, true);
+    $('#gifAskWith').onclick = () => done('with');
+    $('#gifAskWithout').onclick = () => done('without');
+    $('#gifAskCancel').onclick = () => done('cancel');
+    m.onclick = (e) => { if (e.target === m) done('cancel'); };
+    $('#gifAskWith').focus();
+  });
 }
 
 // ====================== GIF per profile ======================
@@ -333,21 +402,60 @@ function initAutoLight() {
   const s = state.settings;
   $('#alLock').checked = s.offOnLock; $('#alLock').onchange = (e) => { s.offOnLock = e.target.checked; persist(); };
   $('#alIdle').value = String(s.idleMin); $('#alIdle').onchange = (e) => { s.idleMin = +e.target.value; persist(); if (!s.idleMin && away && !locked) setAway(false); };
-  const n = s.night;
-  $('#ntOn').checked = n.on; $('#ntFrom').value = n.from; $('#ntTo').value = n.to; $('#ntAction').value = n.action; $('#ntBright').value = n.bright;
-  const fillProf = () => { $('#ntProfile').innerHTML = state.profiles.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join(''); $('#ntProfile').value = n.profile || ''; };
-  fillProf();
-  const showAct = () => { $('#ntBrightWrap').style.display = n.action === 'dim' ? '' : 'none'; $('#ntProfWrap').style.display = n.action === 'profile' ? '' : 'none'; };
-  const showNight = () => $('#ntBox').classList.toggle('off', !n.on);
-  showAct(); showNight();
-  const save = () => { persist(); nightTick(); showNight(); };
-  $('#ntOn').onchange = (e) => { n.on = e.target.checked; save(); };
-  $('#ntFrom').onchange = (e) => { n.from = e.target.value; save(); };
-  $('#ntTo').onchange = (e) => { n.to = e.target.value; save(); };
-  $('#ntAction').onchange = (e) => { n.action = e.target.value; if (n.action === 'profile' && !n.profile) n.profile = state.profiles[0].id; fillProf(); showAct(); nightState = null; save(); };
-  $('#ntBright').onchange = (e) => { n.bright = +e.target.value; save(); if (nightState === 'dim') { lastOverrideKey = ''; overrideChanged(); } };
-  $('#ntProfile').onchange = (e) => { n.profile = e.target.value; save(); };
-  onView.settings = fillProf;
+  initSchedule();
+}
+
+// ---- light by schedule: list of ranges ----
+const ACTIONS = [['dim', 'Diminuir o brilho'], ['off', 'Apagar a luz'], ['profile', 'Usar um perfil']];
+function schedSave() { persist(); scheduleRecheck(); schedStatus(); }
+function schedStatus() {
+  const s = state.settings.schedule, el = $('#ntNow'); if (!el) return;
+  $('#ntBox').classList.toggle('off', !s.on);
+  const hit = scheduleNow();
+  $$('#ntList .sitem').forEach((r) => r.classList.toggle('now', !!hit && r.dataset.id === hit.id));
+  if (!s.items.length) el.textContent = 'Nenhum horário ainda.';
+  else if (!hit) el.textContent = 'Agora nenhum horário está valendo: a luz é a normal.';
+  else el.textContent = `Valendo agora: das ${hit.from} às ${hit.to}.`;
+}
+function renderSchedule() {
+  const s = state.settings.schedule, list = $('#ntList'); list.innerHTML = '';
+  const profOpts = (sel) => state.profiles.map((p) => `<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+  s.items.forEach((it, i) => {
+    const row = document.createElement('div');
+    row.className = 'srow sitem'; row.dataset.id = it.id;
+    row.innerHTML = `<span class="inline-ctl sched-time">das <input type="time" class="tm" data-k="from" aria-label="Começa às"> às <input type="time" class="tm" data-k="to" aria-label="Termina às"></span>
+      <span class="inline-ctl sched-act"><select data-k="action" aria-label="O que fazer">${ACTIONS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select>
+      <select data-k="bright" class="sm" aria-label="Brilho" title="Brilho (0 é o mais fraco)">${[0, 1, 2, 3, 4].map((b) => `<option value="${b}">Brilho ${b}</option>`).join('')}</select>
+      <select data-k="profile" aria-label="Perfil">${profOpts(it.profile)}</select></span>
+      <button class="btn ghost small danger" data-k="del" title="Remover este horário" aria-label="Remover este horário">✕</button>`;
+    const q = (k) => row.querySelector(`[data-k=${k}]`);
+    q('from').value = it.from; q('to').value = it.to; q('action').value = it.action; q('bright').value = String(it.bright ?? 1);
+    const showAct = () => { q('bright').style.display = it.action === 'dim' ? '' : 'none'; q('profile').style.display = it.action === 'profile' ? '' : 'none'; };
+    showAct();
+    q('from').onchange = (e) => { it.from = e.target.value || it.from; schedSave(); };
+    q('to').onchange = (e) => { it.to = e.target.value || it.to; schedSave(); };
+    q('action').onchange = (e) => { it.action = e.target.value; if (it.action === 'profile' && !prof(it.profile)) it.profile = state.profiles[0].id; q('profile').innerHTML = profOpts(it.profile); showAct(); schedSave(); };
+    q('bright').onchange = (e) => { it.bright = +e.target.value; schedSave(); };
+    q('profile').onchange = (e) => { it.profile = e.target.value; schedSave(); };
+    q('del').onclick = () => { s.items.splice(i, 1); renderSchedule(); schedSave(); };
+    list.appendChild(row);
+  });
+  schedStatus();
+}
+function initSchedule() {
+  const s = state.settings.schedule;
+  $('#ntOn').checked = s.on;
+  $('#ntOn').onchange = (e) => { s.on = e.target.checked; if (s.on && !s.items.length) s.items.push({ id: uid(), from: '23:00', to: '07:00', action: 'dim', bright: 1, profile: null }); renderSchedule(); schedSave(); };
+  $('#ntAdd').onclick = () => {
+    const last = s.items[s.items.length - 1];
+    s.items.push({ id: uid(), from: last ? last.to : '08:00', to: last ? last.from : '18:00', action: 'profile', bright: 1, profile: state.profiles[0].id });
+    renderSchedule(); schedSave();
+    const rows = $$('#ntList .sitem'); const r = rows[rows.length - 1];
+    if (r) { r.classList.add('flash'); r.querySelector('input').focus(); }
+  };
+  renderSchedule();
+  setInterval(schedStatus, 30000);
+  onView.settings = renderSchedule; // profile names may have changed
 }
 function initIndicators() {
   const s = state.settings;

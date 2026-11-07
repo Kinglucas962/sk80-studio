@@ -372,13 +372,11 @@
             <label class="toggle"><input type="checkbox" id="alLock"><span></span></label></div>
           <div class="srow"><div><b>Apagar quando ficar parado</b><small>Se ninguém mexer no teclado nem no mouse por esse tempo.</small></div>
             <select id="alIdle"><option value="0">Nunca</option><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15">15 minutos</option><option value="30">30 minutos</option><option value="60">1 hora</option></select></div>
-          <div class="srow"><div><b>Mudar a luz à noite</b><small>Num horário fixo, todo dia.</small></div>
+          <div class="srow"><div><b>Mudar a luz por horário</b><small>Escolha quantos horários quiser e o que a luz faz em cada um, todo dia. Por exemplo: perfil de trabalho de manhã, brilho baixo à noite. Se dois horários se cruzarem, vale o de cima.</small></div>
             <label class="toggle"><input type="checkbox" id="ntOn"><span></span></label></div>
           <div class="sub" id="ntBox">
-            <div class="srow"><div><b>Horário</b></div><span class="inline-ctl">das <input type="time" id="ntFrom" class="tm"> às <input type="time" id="ntTo" class="tm"></span></div>
-            <div class="srow"><div><b>O que fazer</b></div><select id="ntAction"><option value="dim">Diminuir o brilho</option><option value="off">Apagar a luz</option><option value="profile">Usar um perfil</option></select></div>
-            <div class="srow" id="ntBrightWrap"><div><b>Brilho à noite</b><small>0 é o mais fraco.</small></div><select id="ntBright"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
-            <div class="srow" id="ntProfWrap"><div><b>Perfil da noite</b></div><select id="ntProfile"></select></div>
+            <div id="ntList" class="sched"></div>
+            <div class="srow sched-foot"><small id="ntNow"></small><button class="btn small" id="ntAdd">+ Adicionar horário</button></div>
           </div>
         </div>
 
@@ -437,6 +435,13 @@
     <div class="row"><b>Biblioteca de macros</b><div class="grow"></div><button class="btn ghost small" id="libClose">Fechar</button></div>
     <p class="hint">Clique para adicionar como macro nova; depois escolha a tecla que dispara. Atalhos com Ctrl, Shift, Alt ou Win dentro de macro ainda não foram testados no teclado.</p>
     <div id="libBody"></div>
+  </div></div>
+  <div class="modal" id="gifAsk" role="dialog" aria-modal="true" aria-labelledby="gifAskTitle"><div class="modal-card gifask-card">
+    <b id="gifAskTitle">Esse perfil vem com um GIF da telinha</b>
+    <div class="gifask-prev"><img id="gifAskImg" alt="GIF que vem junto com o perfil"></div>
+    <small class="hint inline" id="gifAskInfo"></small>
+    <p class="hint">Quem fez “<span id="gifAskName"></span>” deixou o GIF da telinha junto. Com o GIF, ele vai para a sua biblioteca e é mandado para a telinha quando você usar o perfil. Dá para trocar depois em Perfis.</p>
+    <div class="row center"><button class="btn primary" id="gifAskWith">Aplicar com o GIF</button><button class="btn" id="gifAskWithout">Sem o GIF</button><button class="btn ghost" id="gifAskCancel">Cancelar</button></div>
   </div></div>
   <div class="modal" id="newsModal"><div class="modal-card news-card">
     <img src="icon.png" alt="" width="56">

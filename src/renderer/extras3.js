@@ -189,6 +189,7 @@ function fxPreview(on) {
   if (on) { fx.pf = 0; step(); } else renderBoard();
   $('#fxPreview').textContent = on ? 'Parar prévia' : 'Ver prévia';
 }
+let fxDrag = null; // index of the frame being dragged
 function renderFrames() {
   const e = curFx(), box = $('#fxFrames'); box.innerHTML = '';
   if (!e) return;
@@ -196,9 +197,31 @@ function renderFrames() {
     const c = document.createElement('button'); c.className = 'fxframe' + (i === fx.frame ? ' on' : '');
     c.innerHTML = '<div class="gmini">' + LAYOUT.map((k) => `<i style="left:${((k.x - 72) / 6.6).toFixed(1)}%;top:${((k.y - 22) / 2.7).toFixed(1)}%;width:${(k.w / 6.6).toFixed(1)}%;background:${f[k.idx] || 'var(--mini-off)'}"></i>`).join('') + `</div><span>${i + 1}</span>`;
     c.onclick = () => { fx.frame = i; if (fx.preview) fxPreview(false); renderBoard(); renderFrames(); };
+    // drag a frame to another place in the strip; a line shows where it will land
+    c.draggable = true; c.title = 'Clique para editar · arraste para mudar a ordem';
+    c.ondragstart = (ev) => { fxDrag = i; c.classList.add('dragging'); ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', String(i)); };
+    c.ondragend = () => { fxDrag = null; $$('#fxFrames .fxframe').forEach((x) => x.classList.remove('dragging', 'drop-before', 'drop-after')); };
+    c.ondragover = (ev) => {
+      if (fxDrag === null) return;
+      ev.preventDefault(); ev.dataTransfer.dropEffect = 'move';
+      const r = c.getBoundingClientRect(), after = ev.clientX > r.left + r.width / 2;
+      $$('#fxFrames .fxframe').forEach((x) => { if (x !== c) x.classList.remove('drop-before', 'drop-after'); });
+      c.classList.toggle('drop-after', after); c.classList.toggle('drop-before', !after);
+    };
+    c.ondrop = (ev) => {
+      ev.preventDefault();
+      if (fxDrag === null) return;
+      const from = fxDrag, target = c.classList.contains('drop-after') ? i + 1 : i;
+      const to = target > from ? target - 1 : target;
+      fxDrag = null;
+      if (to !== from) { const [moved] = e.frames.splice(from, 1); e.frames.splice(to, 0, moved); persist(); }
+      fx.frame = to; if (fx.preview) fxPreview(false);
+      renderFrames(); renderBoard();
+      const landed = $$('#fxFrames .fxframe')[to]; if (landed) landed.classList.add('landed');
+    };
     box.appendChild(c);
   });
-  $('#fxInfo').textContent = `${e.frames.length} quadro(s) · ${(e.frames.length * e.ms / 1000).toFixed(1)} s por volta`;
+  $('#fxInfo').textContent = `${e.frames.length} quadro(s) · ${(e.frames.length * e.ms / 1000).toFixed(1)} s por volta · arraste um quadro para mudar a ordem`;
 }
 function renderFx() {
   const list = $('#fxList'); list.innerHTML = '';

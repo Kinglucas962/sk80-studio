@@ -126,10 +126,13 @@ async function refreshAppList() {
     .map((a) => `<option value="${esc(a.name)}">${esc(a.name)} — ${esc(a.title.slice(0, 50))}</option>`).join('');
 }
 
-function exportProfile(p) {
+async function exportProfile(p) {
   const data = p.id === state.activeProfile ? snapshot() : p.data;
-  const text = JSON.stringify({ app: 'sk80-studio', kind: 'profile', version: 1, name: p.name, apps: p.apps || [], data }, null, 1);
-  return window.sk.saveFile(p.name.replace(/[\\/:*?"<>|]/g, '_') + '.sk80perfil', text, 'sk80perfil').then((f) => f && toast('Perfil exportado'));
+  // the screen GIF goes along: the profile's own GIF, or (for the profile in use) what the keyboard screen shows now
+  const gif = await profileGifForExport(p).catch(() => null);
+  const text = JSON.stringify({ app: 'sk80-studio', kind: 'profile', version: 1, name: p.name, apps: p.apps || [], data, gif }, null, 1);
+  return window.sk.saveFile(p.name.replace(/[\\/:*?"<>|]/g, '_') + '.sk80perfil', text, 'sk80perfil')
+    .then((f) => f && toast(gif ? `Perfil exportado com o GIF “${gif.name}”` : 'Perfil exportado'));
 }
 async function importProfile() {
   const text = await window.sk.openFile('sk80perfil').catch((e) => { toast('Não consegui abrir: ' + e.message); return null; });
@@ -138,8 +141,10 @@ async function importProfile() {
   if (o.kind !== 'profile' || !o.data || !o.data.light) { toast('Esse arquivo não é um perfil do SK80 Studio'); return; }
   const taken = new Set(state.profiles.flatMap((x) => x.apps || []));
   const p = { id: uid(), name: o.name || 'Importado', apps: (o.apps || []).filter((a) => !taken.has(a)), data: o.data };
+  const gif = await askProfileGif(o); if (gif === undefined) return; // closed the question: nothing imported
+  p.gif = gif;
   state.profiles.push(p); editId = p.id; profilesChanged();
-  toast(`Perfil “${p.name}” importado. Clique em “Usar este perfil” para mandar ao teclado.`);
+  toast(`Perfil “${p.name}” importado${gif ? ' com o GIF' : ''}. Clique em “Usar este perfil” para mandar ao teclado.`);
 }
 
 // automatic switching by foreground program
