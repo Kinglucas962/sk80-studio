@@ -2,6 +2,9 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.7': [
+    '“Copiar para Efeitos próprios” agora grava a volta inteira de efeitos que começam apagados, como o Inclinado. Se você copiou antes e ficou quase tudo apagado, copie de novo.',
+  ],
   '1.1.6': [
     'Aviso de mensagem: escolha o programa numa lista dos programas abertos, sem precisar digitar o nome.',
     'A cor e o botão de ligar das luzes de aviso não ficam mais um em cima do outro.',

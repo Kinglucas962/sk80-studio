@@ -187,10 +187,17 @@ function lightToFrames() {
   let T = 3, still = false, looped = false;
   if (!reactive) {
     const c0 = at(0);
-    if (diff(c0, at(0.37)) < 1 && diff(c0, at(1.13)) < 1) still = true; // doesn't move
+    if ([0.37, 1.13, 2.9, 5.3, 8.7, 11.9].every((t) => diff(c0, at(t)) < 1)) still = true; // doesn't move
     else {
-      // first moment (after 0.4 s) where the keyboard looks like the start again = one full turn
-      for (let t = 0.4; t <= 12; t += 0.02) if (diff(c0, at(t)) < 3) { T = t; looped = true; break; }
+      // One full turn = the shortest shift T where the WHOLE animation lines up with itself (compared over
+      // 3 seconds), not just the first picture: effects that start dark (Inclinado) are dark at other moments too.
+      const STEP = 0.02, WIN = 150, MAXT = 12;
+      const F = []; for (let i = 0; i * STEP <= MAXT + WIN * STEP; i++) F.push(at(i * STEP));
+      let busy = 0; for (let j = 0; j < WIN; j++) busy = Math.max(busy, diff(F[0], F[j]));
+      for (let k = Math.round(0.4 / STEP); k * STEP <= MAXT; k++) {
+        let e = 0; for (let j = 0; j < WIN; j += 3) e = Math.max(e, diff(F[j], F[j + k]));
+        if (e < Math.max(2, busy * 0.06)) { T = k * STEP; looped = true; break; }
+      }
     }
   }
   const count = still ? 1 : Math.max(6, Math.min(48, Math.round(T / 0.1)));

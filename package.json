@@ -1,7 +1,7 @@
 {
   "name": "sk80-studio",
   "productName": "SK80 Studio",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Aplicativo para controlar o teclado Womier / XVX SK80: iluminação, cor por tecla, teclas, macros, telinha, perfis.",
   "main": "src/main.js",
   "author": "Kinglucas962",
