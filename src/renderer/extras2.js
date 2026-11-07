@@ -2,6 +2,12 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.2.0': [
+    '13 efeitos novos na Iluminação, em “Efeitos do app”: Fogo, Aurora, Matrix, Estrelas, Batimento, Sirene, Oceano, Lava, Plasma, Cometa, Tempestade, Vagalumes e Confete. Eles funcionam com o app aberto.',
+    'Os efeitos tocados pelo app (e os Efeitos próprios) ficaram bem mais lisos no teclado: cerca de 3 vezes mais quadros por segundo.',
+    'A tela da Iluminação cabe inteira em tela cheia: o teclado desenhado não some mais quando você escolhe um efeito.',
+    'Efeitos próprios: os modelos prontos saíram; ficou o botão “Novo efeito”.',
+  ],
   '1.1.9': [
     'Degradê com mais direções: da direita para a esquerda, de baixo para cima, as quatro diagonais e das bordas para o centro.',
   ],
@@ -110,8 +116,7 @@ function sendLight() {
       const colors = {}; for (const [i, c] of Object.entries(state.paint)) colors[i] = hex2rgb(c);
       await window.sk.customColors(colors, { brightness: br ?? state.paintBright });
     } else {
-      const l = state.light, [r, g, b] = hex2rgb(l.color);
-      await window.sk.lighting({ mode: l.mode, r, g, b, random: l.random, brightness: br ?? l.brightness, speed: l.speed, direction: l.direction });
+      await window.sk.lighting(fwLight(state.light, br ?? state.light.brightness));
     }
   });
 }
@@ -186,15 +191,40 @@ async function liveKick() {
   while (liveWanted()) {
     const t = performance.now() / 1000;
     const map = liveBase() || {};
-    for (const fn of Object.values(Live.layers)) fn(map, t);
+    // an app effect is the base picture: overlays (Caps Lock, message alert, volume...) go on top of it
+    if (Live.layers.appfx) Live.layers.appfx(map, t);
+    for (const [name, fn] of Object.entries(Live.layers)) if (name !== 'appfx') fn(map, t);
     const entries = Object.entries(map).map(([i, c]) => [+i, ...c.map((v) => Math.max(0, Math.min(255, Math.round(v))))]);
     try { await window.sk.previewColors(entries); if (syncErr) { syncErr = null; setSync(); } }
     catch (e) { syncErr = e.message; setSync(); await sleepMs(1000); }
-    await sleepMs(95);
+    // app effects need smooth motion: next frame right away (one frame takes ~50 ms to send); the other
+    // layers (Caps Lock, alerts, volume) barely move and keep the old pace
+    await sleepMs(Live.layers.appfx || Live.layers.fx ? 5 : 95);
   }
   Live.running = false;
   sendLight(); // back to the saved lighting (or off)
 }
+
+// App effects (Fogo, Aurora... ids 100+): the keyboard has no such mode, so the app streams every key
+// while one is chosen and the per-key colours aren't in use. Checked often so profiles, backups, the
+// schedule and anything else that changes state.light is picked up without hooking each one.
+let appFxOn = false, appSim = null;
+function appFxSync() {
+  if (typeof sim === 'undefined' || !sim) return; // the drawn board isn't built yet
+  const want = !state.paintActive && window.SK_isAppMode(state.light.mode);
+  if (want === appFxOn) return;
+  appFxOn = want;
+  if (!want) { liveSet('appfx', null); return; }
+  appSim = new window.LightSim(sim.keys);
+  liveSet('appfx', (map, t) => {
+    const l = state.light, o = lightOverride();
+    const k = (o && o.bright != null ? o.bright : l.brightness) / 5;
+    const c = appSim.frame(t, { mode: l.mode, rgb: hex2rgb(l.color), random: l.random, speed: l.speed, brightness: 5, direction: 0 });
+    for (const key of LAYOUT) map[key.idx] = (c[key.idx] || [0, 0, 0]).map((v) => v * k);
+  });
+}
+window.appFxSync = appFxSync;
+setInterval(appFxSync, 500);
 
 // Caps Lock
 const CAPS_IDX = 55;

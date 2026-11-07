@@ -172,15 +172,23 @@ function go(v) {
 
 // ---------- lighting ----------
 let lightWheel;
+// what the keyboard itself gets. App effects (100+) don't exist in the keyboard: it gets a still colour,
+// which is what stays on when the app is closed, and the app streams the effect on top (extras2 appFxSync).
+function fwLight(l, brightness = l.brightness) {
+  const [r, g, b] = hex2rgb(l.color);
+  if (window.SK_isAppMode(l.mode)) return { mode: 1, r, g, b, random: false, brightness, speed: l.speed, direction: 0 };
+  return { mode: l.mode, r, g, b, random: l.random, brightness, speed: l.speed, direction: l.direction };
+}
 const applyLight = debounce(() => {
-  const l = state.light; const [r, g, b] = hex2rgb(l.color);
   state.paintActive = false;
-  device(() => window.sk.lighting({ mode: l.mode, r, g, b, random: l.random, brightness: l.brightness, speed: l.speed, direction: l.direction }));
+  device(() => window.sk.lighting(fwLight(state.light)));
   persist();
+  if (window.appFxSync) window.appFxSync();
 }, 140);
 function initLight() {
   const box = $('#modes');
   for (const [id, name] of window.SK_MODES) {
+    if (id === 100) box.insertAdjacentHTML('beforeend', '<div class="modes-group"><b>Efeitos do app</b><span>Funcionam enquanto o SK80 Studio estiver aberto. Fechando o app, o teclado fica na cor escolhida.</span></div>');
     const b = document.createElement('button'); b.className = 'mode'; b.dataset.id = id;
     b.textContent = name; if ((window.SK_MODE_INFO[id] || [])[1]) b.insertAdjacentHTML('beforeend', ' <i class="touch" title="Reage ao toque">✋</i>');
     b.onclick = () => { state.light.mode = id; state.paintActive = false; syncLight(); applyLight(); };

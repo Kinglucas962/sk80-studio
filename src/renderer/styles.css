@@ -170,7 +170,7 @@ h1 { margin: 0; font: 600 28px/1.15 var(--display); letter-spacing: .2px; }
 h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--text); }
 
 /* ---------- drawn keyboard (the hero) ---------- */
-.board-wrap { position: relative; display: flex; justify-content: center; padding: 14px 0 22px; }
+.board-wrap { position: relative; display: flex; justify-content: center; padding: 8px 0 16px; }
 /* the keyboard's light spilling onto the desk */
 .board-wrap::before {
   content: ""; position: absolute; left: 50%; top: 50%; width: 900px; height: 300px; translate: -50% -46%; z-index: -1; pointer-events: none;
@@ -276,6 +276,9 @@ h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--text); }
 .mode:active { transform: scale(.96); }
 .mode.on { background: var(--fill); color: var(--fill-ink); border-color: transparent; font-weight: 600; box-shadow: 0 6px 16px -8px var(--accent); }
 .mode .touch { font-style: normal; font-size: 12px; opacity: .8; }
+.modes-group { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 2px; margin: 10px 0 2px; padding-top: 12px; border-top: 1px solid var(--line); }
+.modes-group b { font-size: 13.5px; }
+.modes-group span { font-size: 12px; color: var(--mute); }
 
 .colorrow { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
 input[type=color] { width: 46px; height: 46px; border: 1px solid var(--line); border-radius: 12px; padding: 3px; background: var(--panel2); cursor: pointer; }
@@ -347,8 +350,12 @@ kbd.hk { padding: 4px 10px; border-radius: 8px; background: var(--panel2); borde
 .cw-chip:hover { transform: scale(1.15); }
 
 /* ---------- lighting / paint ---------- */
-.grid-light { display: grid; grid-template-columns: 1.25fr 1.1fr .75fr; gap: 16px; }
-.grid-light .modes { grid-template-columns: repeat(3, 1fr); }
+/* effects list wide on the left, colour and brightness stacked on the right: with the app effects the list
+   got long, and three side-by-side cards pushed the drawn keyboard off the top of a full-screen window */
+.grid-light { display: grid; grid-template-columns: 1.55fr 1fr; grid-template-rows: auto 1fr; gap: 16px; align-items: start; }
+.grid-light > .card:first-child { grid-row: 1 / span 2; }
+.grid-light .modes { grid-template-columns: repeat(5, 1fr); }
+.grid-light .mode { padding: 8px 6px; }
 .grid-light .dir { grid-template-columns: 1fr; }
 .grid-paint { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -646,8 +653,8 @@ small.live { color: var(--good); font-size: 11px; white-space: nowrap; }
 
 /* ---------- smaller windows ---------- */
 @media (max-width: 1250px) {
-  .grid-light { grid-template-columns: 1fr 1fr; }
-  .grid-light > .card:last-child { grid-column: 1 / -1; }
+  .grid-light { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+  .grid-light > .card:first-child { grid-row: auto; grid-column: 1 / -1; }
 }
 @media (max-width: 1100px) {
   .grid-paint, .grid-screen, .grid2, .grid-set { grid-template-columns: 1fr; }

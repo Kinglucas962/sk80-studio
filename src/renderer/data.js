@@ -135,6 +135,20 @@ window.SK_MODE_INFO = {
   17: ['Uma onda sai do H para os dois lados, subindo e descendo.'],
   18: ['Faixas de luz na diagonal, uma atrás da outra, entre o Ctrl e a telinha.'],
   19: ['Cada fileira tem uma faixa de luz que vai e volta.'],
+  // app effects: the app sends them to the keyboard while it is open
+  100: ['Chamas sobem das teclas de baixo.'],
+  101: ['Faixas verdes e roxas ondulam devagar, como a aurora boreal.'],
+  102: ['Gotas verdes caem pelas colunas, como no filme.'],
+  103: ['Céu escuro com estrelas brancas piscando devagar.'],
+  104: ['O teclado pulsa duas vezes, como um coração. Usa a cor escolhida.'],
+  105: ['Metade vermelha e metade azul piscando, uma de cada vez.'],
+  106: ['Ondas azuis passando, com espuma clara.'],
+  107: ['Manchas vermelhas e laranja se mexendo devagar.'],
+  108: ['Todas as cores fluindo em manchas.'],
+  109: ['Uma luz com rastro passa por todas as fileiras. Usa a cor escolhida.'],
+  110: ['Céu escuro com relâmpagos de vez em quando.'],
+  111: ['Pontinhos amarelo-esverdeados passeando e brilhando.'],
+  112: ['Teclas acendem em cores aleatórias e apagam.'],
 };
 
 // [mode id, name, has direction] — direction confirmed in captures for modes 10, 11, 16, 18
@@ -144,4 +158,9 @@ window.SK_MODES = [
   [9, 'Para fora', false], [10, 'Rolagem', true], [11, 'Rolando', true], [12, 'Girando', false],
   [13, 'Explosão', false], [14, 'Lançamento', false], [15, 'Ondulações', false], [16, 'Fluxo', true],
   [17, 'Pulsante', false], [18, 'Inclinado', true], [19, 'Vai e vem', false], [0, 'Desligado', false],
+  // app effects (sim.js appEffect): only while the app is open
+  [100, 'Fogo', false], [101, 'Aurora', false], [102, 'Matrix', false], [103, 'Estrelas', false],
+  [104, 'Batimento', false], [105, 'Sirene', false], [106, 'Oceano', false], [107, 'Lava', false],
+  [108, 'Plasma', false], [109, 'Cometa', false], [110, 'Tempestade', false], [111, 'Vagalumes', false],
+  [112, 'Confete', false],
 ];

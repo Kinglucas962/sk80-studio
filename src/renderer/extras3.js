@@ -287,7 +287,7 @@ function renderFrames() {
 }
 function renderFx() {
   const list = $('#fxList'); list.innerHTML = '';
-  if (!state.effects.length) list.innerHTML = '<p class="hint">Nenhum efeito ainda. Comece de um modelo abaixo.</p>';
+  if (!state.effects.length) list.innerHTML = '<p class="hint">Nenhum efeito ainda. Crie um em “Novo efeito” ou copie um da Iluminação.</p>';
   state.effects.forEach((e, i) => {
     const d = document.createElement('div'); d.className = 'mitem' + (i === fx.sel ? ' on' : '');
     d.innerHTML = `<div><b></b><small>${e.frames.length} quadros</small></div>${fx.playing && i === fx.sel ? '<span class="badge">tocando</span>' : ''}`;

@@ -30,6 +30,11 @@ const MODE_CUSTOM = 0x80;
 const SCREEN_W = 160, SCREEN_H = 96, FRAME_BYTES = SCREEN_W * SCREEN_H * 2, SCREEN_PAGE = 4096;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Exact short pause for live frames. On Windows both setTimeout and Atomics.wait round 4 ms up to ~11-15 ms,
+// which made one live-colour frame take ~155 ms (about 6 per second). Measured on the SK80: each feature
+// report already takes ~4 ms to send, the same spacing the official driver shows, so the data packets go
+// back to back and only the two 8 ms ack waits remain, done as a short busy wait (~16 ms per frame).
+const waitExact = (ms) => { const end = process.hrtime.bigint() + BigInt(Math.round(ms * 1e6)); while (process.hrtime.bigint() < end); };
 
 class SK80 {
   constructor() { this.cfg = null; this.scr = null; this.busy = Promise.resolve(); }
@@ -104,6 +109,7 @@ class SK80 {
   // ---------- lighting ----------
   // mode 0..19 or 0x80 (custom per-key). brightness 0..5, speed 0..5, direction 0..3
   setLighting({ mode, r = 255, g = 255, b = 255, random = false, brightness = 5, speed = 3, direction = 0 }) {
+    if (mode >= 100 && mode < 0x80) mode = 1; // app-only effects (streamed by the app) never reach the keyboard as a mode
     return this.run(async () => {
       const p = SK80.block(1);
       // LED Off: the official driver sends mode 0 with every field zeroed (brightness 0).
@@ -143,10 +149,12 @@ class SK80 {
         const off = Math.floor(k / 16) * 64 + (k % 16) * 4;
         blob[off] = e[0]; blob[off + 1] = e[1]; blob[off + 2] = e[2]; blob[off + 3] = e[3];
       });
-      // same sequence as the official driver: header (+ack), 8 packets ~4 ms apart, then END (+ack)
-      await this.command(CMD.PREVIEW_COLORS, 0, 8);
-      for (let i = 0; i < 8; i++) { this.send(blob.subarray(i * 64, i * 64 + 64)); await sleep(4); }
-      await this.command(CMD.END);
+      // same sequence as the official driver: header (+ack), 8 packets ~4 ms apart, then END (+ack);
+      // see waitExact for why the packets need no pause of their own
+      const cmd = (c, count = 0) => { const h = Buffer.alloc(64); h[0] = 0x04; h[1] = c; h[8] = count; this.send(h); waitExact(8); return this.get(); };
+      cmd(CMD.PREVIEW_COLORS, 8);
+      for (let i = 0; i < 8; i++) this.send(blob.subarray(i * 64, i * 64 + 64));
+      cmd(CMD.END);
     });
   }
 
