@@ -51,19 +51,25 @@ function DrawFull([int]$S) {
   $g.Dispose(); return $b
 }
 
-# Small/tray icon: gradient tile with four white keys (readable at 16 px)
+# Small/tray icon: same look as the full icon (gradient rim, dark tile, rainbow keys), simplified for 16-32 px
 function DrawSmall([int]$S) {
   $b = New-Object Drawing.Bitmap $S, $S
   $g = [Drawing.Graphics]::FromImage($b); $g.SmoothingMode = 'AntiAlias'; $g.Clear([Drawing.Color]::Transparent)
   $k = $S / 32.0
-  $tile = RoundRect (1 * $k) (1 * $k) (30 * $k) (30 * $k) (8 * $k)
-  $br = New-Object Drawing.Drawing2D.LinearGradientBrush((New-Object Drawing.PointF 0, 0), (New-Object Drawing.PointF $S, $S), [Drawing.Color]::FromArgb(255, 255, 42, 42), [Drawing.Color]::FromArgb(255, 123, 43, 255))
-  $g.FillPath($br, $tile)
-  $w = New-Object Drawing.SolidBrush ([Drawing.Color]::White)
-  foreach ($r in @(@(7, 8, 8, 7), @(17, 8, 8, 7), @(7, 17, 18, 7))) { $g.FillPath($w, (RoundRect ($r[0] * $k) ($r[1] * $k) ($r[2] * $k) ($r[3] * $k) (2 * $k))) }
+  $rim = New-Object Drawing.Drawing2D.LinearGradientBrush((New-Object Drawing.PointF 0, 0), (New-Object Drawing.PointF $S, $S), [Drawing.Color]::FromArgb(255, 255, 42, 42), [Drawing.Color]::FromArgb(255, 123, 43, 255))
+  $g.FillPath($rim, (RoundRect (0.5 * $k) (0.5 * $k) (31 * $k) (31 * $k) (8 * $k)))
+  $g.FillPath((New-Object Drawing.SolidBrush ([Drawing.Color]::FromArgb(255, 24, 27, 34))), (RoundRect (2.5 * $k) (2.5 * $k) (27 * $k) (27 * $k) (6.5 * $k)))
+  $keys = @(
+    @(6, 6.5, 6, 6, 0), @(13, 6.5, 6, 6, 30),
+    @(6, 14, 6, 5.5, 60), @(13, 14, 6, 5.5, 140), @(20, 14, 6, 5.5, 200),
+    @(6, 21, 20, 5, 270)
+  )
+  foreach ($c in $keys) { $g.FillPath((New-Object Drawing.SolidBrush (Hue $c[4])), (RoundRect ($c[0] * $k) ($c[1] * $k) ($c[2] * $k) ($c[3] * $k) (1.6 * $k))) }
+  # the little screen (top right)
+  $sb = New-Object Drawing.Drawing2D.LinearGradientBrush((New-Object Drawing.PointF (20 * $k), 0), (New-Object Drawing.PointF (26 * $k), 0), [Drawing.Color]::FromArgb(255, 0, 229, 255), [Drawing.Color]::FromArgb(255, 155, 77, 255))
+  $g.FillPath($sb, (RoundRect (20 * $k) (6.5 * $k) (6 * $k) (6 * $k) (1.6 * $k)))
   $g.Dispose(); return $b
 }
-
 function SavePng($bmp, $path) { New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null; $bmp.Save($path, [Drawing.Imaging.ImageFormat]::Png) }
 
 $big = DrawFull 1024

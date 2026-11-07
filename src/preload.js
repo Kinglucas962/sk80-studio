@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld('sk', {
   checkUpdate: () => call('update:check'),
   installUpdate: () => call('update:install'),
   onUpdate: (cb) => ipcRenderer.on('update', (_e, u) => cb(u)),
+  onUpdateInstalling: (cb) => ipcRenderer.on('update-installing', (_e, v) => cb(v)),
+  onUpdateCheckManual: (cb) => ipcRenderer.on('update-check-manual', () => cb()),
   getAutostart: () => call('autostart:get'),
   setAutostart: (on) => call('autostart:set', on),
 });

@@ -2,6 +2,12 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.0.6': [
+    'Atualização mais clara: um cartão no menu mostra o download e avisa quando está pronta.',
+    'Clique na versão, no rodapé do menu, para procurar atualização na hora (também tem na bandeja).',
+    'Tela de Atualizando ao reiniciar para atualizar, em vez do app sumir.',
+    'Ícone da bandeja igual ao do app.',
+  ],
   '1.0.5': ['A telinha do teclado desenhado já abre mostrando o último GIF que você mandou.'],
   '1.0.4': ['Os botões de ligar e desligar ficam fáceis de ver com qualquer cor de luz.'],
   '1.0.3': ['O aviso de mensagem pode piscar o teclado inteiro, não só uma tecla.'],

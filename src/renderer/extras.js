@@ -408,25 +408,55 @@ async function initSettings() {
 }
 
 // ====================== version + automatic updates ======================
+// The sidebar card appears while an update downloads or is ready; a manual check also shows "procurando" / "em dia".
+let updManual = false, updHideT = null, lastUpd = null;
 function showUpdate(u) {
+  lastUpd = u;
   const t = {
     dev: 'Rodando pelo código-fonte: a atualização automática só funciona no app instalado.',
     idle: '', checking: 'Procurando atualização…', latest: 'Você está na versão mais nova.',
     downloading: `Baixando a versão ${u.version || ''}… ${u.percent || 0}%`,
-    ready: `Versão ${u.version} baixada. Ela entra quando você fechar o app.`,
-    error: 'Não deu para procurar atualização agora' + (u.error ? ` (${u.error})` : '') + '.',
+    ready: `Versão ${u.version} baixada. Ela entra quando você reiniciar o app.`,
+    error: 'Não deu para procurar atualização agora' + (u.error ? ` (${u.error})` : '') + '. Confira a internet.',
   }[u.state] || '';
   $('#updText').textContent = t;
   $('#updInstall').style.display = u.state === 'ready' ? '' : 'none';
   $('#updCheck').disabled = u.state === 'dev' || u.state === 'checking' || u.state === 'downloading';
-  if (u.state === 'ready') toast(`Atualização ${u.version} pronta`);
+
+  // sidebar card
+  const card = $('#updCard'), show = (title, sub, kind, pct) => {
+    clearTimeout(updHideT);
+    card.hidden = false; card.dataset.kind = kind;
+    $('#updCardTitle').textContent = title; $('#updCardSub').textContent = sub;
+    $('#updCardBar').style.width = (pct ?? 0) + '%';
+    $('#updCardBtn').hidden = kind !== 'ready';
+  };
+  const hideLater = (ms) => { clearTimeout(updHideT); updHideT = setTimeout(() => { card.hidden = true; }, ms); };
+  if (u.state === 'downloading') show(`Baixando a versão ${u.version || 'nova'}`, `${u.percent || 0}% · pode continuar usando`, 'down', u.percent || 0);
+  else if (u.state === 'ready') { show(`Versão ${u.version} pronta`, 'Entra quando você reiniciar o app.', 'ready', 100); if (!showUpdate.toasted) { showUpdate.toasted = true; toast(`Atualização ${u.version} pronta`); } }
+  else if (updManual && u.state === 'checking') show('Procurando atualização…', 'Só um instante.', 'check', 0);
+  else if (updManual && u.state === 'latest') { show('Tudo em dia', 'Você já tem a versão mais nova.', 'ok', 100); updManual = false; hideLater(3500); }
+  else if (updManual && u.state === 'error') { show('Sem conexão com o GitHub', 'Confira a internet e tente de novo.', 'err', 0); updManual = false; hideLater(5000); }
+  else if (!updManual) card.hidden = true;
+}
+function checkNow() {
+  if (lastUpd && lastUpd.state === 'dev') { toast('A atualização automática só funciona no app instalado.'); return; }
+  if (lastUpd && (lastUpd.state === 'downloading' || lastUpd.state === 'ready')) return;
+  updManual = true; showUpdate({ ...(lastUpd || {}), state: 'checking' });
+  window.sk.checkUpdate();
 }
 async function initUpdates() {
   const info = await window.sk.appInfo().catch(() => null);
-  if (info) { $('#appVer').textContent = 'Versão ' + info.version; showUpdate(info.update); }
+  if (info) { $('#appVer').textContent = 'Versão ' + info.version; $('#railVerText').textContent = 'Versão ' + info.version; showUpdate(info.update); }
   window.sk.onUpdate(showUpdate);
-  $('#updCheck').onclick = () => window.sk.checkUpdate();
+  window.sk.onUpdateCheckManual(checkNow);
+  window.sk.onUpdateInstalling((v) => {
+    $('#updOverTitle').textContent = v ? `Atualizando para a versão ${v}…` : 'Atualizando…';
+    $('#updOver').classList.add('show');
+  });
+  $('#updCheck').onclick = checkNow;
+  $('#railVer').onclick = checkNow;
   $('#updInstall').onclick = () => window.sk.installUpdate();
+  $('#updCardBtn').onclick = () => window.sk.installUpdate();
 }
-
 window.SK_EXTRAS = [initProfiles, initPaintExtras, initMacroExtras, initSettings];

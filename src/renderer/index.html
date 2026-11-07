@@ -21,7 +21,13 @@
     <button class="nav" data-view="tester"><i>✓</i><span>Testar teclas<small>Ache tecla com defeito</small></span></button>
     <div class="grow"></div>
     <button class="nav" data-view="settings"><i>⚙</i><span>Ajustes<small>Luz automática, atalhos</small></span></button>
+    <div class="updcard" id="updCard" hidden>
+      <div class="updtop"><span class="updico" id="updIco"></span><div><b id="updCardTitle"></b><small id="updCardSub"></small></div></div>
+      <div class="updbar"><div id="updCardBar"></div></div>
+      <button class="btn primary small" id="updCardBtn" hidden>Reiniciar e atualizar</button>
+    </div>
     <div class="conn" id="conn"><span class="led"></span><span id="connText">Procurando teclado…</span></div>
+    <button class="railver" id="railVer" title="Clique para procurar atualização"><span id="railVerText">SK80 Studio</span><span class="railcheck">Procurar atualização</span></button>
   </nav>
 
   <main>
@@ -356,6 +362,14 @@
     <ul id="newsList"></ul>
     <button class="btn primary" id="newsClose">Legal!</button>
   </div></div>
+  <div class="updover" id="updOver" aria-live="polite">
+    <div class="updover-in">
+      <img src="icon.png" alt="" class="updlogo">
+      <b id="updOverTitle">Atualizando…</b>
+      <small>O SK80 Studio vai fechar e abrir de novo sozinho em alguns segundos. Suas configurações continuam salvas.</small>
+      <div class="updbar indet"><div></div></div>
+    </div>
+  </div>
   <div class="modal" id="keyModal"><div class="modal-card"><b>Aperte a tecla que quer inserir</b><p class="hint">Ela entra como um toque (apertar e soltar). Esc cancela.</p></div></div>
 
   <script src="data.js" charset="utf-8"></script>

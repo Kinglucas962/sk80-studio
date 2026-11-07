@@ -69,7 +69,9 @@ function buildTray() {
   }
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir SK80 Studio', click: showWindow },
-    ...(update.state === 'ready' ? [{ label: `Reiniciar e atualizar (${update.version})`, click: installUpdate }] : []),
+    ...(update.state === 'ready'
+      ? [{ label: `Reiniciar e atualizar (${update.version})`, click: installUpdate }]
+      : [{ label: 'Procurar atualização', enabled: !!updater, click: () => { showWindow(); if (win) win.webContents.send('update-check-manual'); } }]),
     { type: 'separator' },
     ...trayState.profiles.map((p) => ({
       label: p.name, type: 'radio', checked: p.id === trayState.active,
@@ -225,9 +227,14 @@ function setUpdate(patch) {
   buildTray();
 }
 function installUpdate() {
-  if (!updater || update.state !== 'ready') return;
-  quitting = true; watchForeground(false);
-  updater.quitAndInstall(true, true); // silent install, reopen the app afterwards
+  if (!updater || update.state !== 'ready' || update.installing) return;
+  update.installing = true;
+  // show the "Atualizando…" screen for a moment so the app doesn't just vanish
+  if (win) { showWindow(); win.webContents.send('update-installing', update.version); }
+  setTimeout(() => {
+    quitting = true; watchForeground(false);
+    updater.quitAndInstall(true, true); // silent install, reopen the app afterwards
+  }, 1800);
 }
 function initUpdater() {
   if (!app.isPackaged) return;
