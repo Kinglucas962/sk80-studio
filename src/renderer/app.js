@@ -135,16 +135,17 @@ function animate() {
 
 // ---------- navigation ----------
 const VIEWS = {
-  light: ['Iluminação', 'Escolha o efeito e veja a prévia animada aqui em cima. Muda no teclado na hora.'],
-  paint: ['Cor por tecla', 'Clique numa tecla, ou clique e arraste, para pintar. Vai direto para o teclado.'],
-  keys: ['Teclas', 'Troque o que cada tecla faz. Salva sozinho.'],
-  macros: ['Macros', 'Grave sequências de teclas e escolha como elas tocam.'],
-  screen: ['Telinha', 'Mande GIFs e imagens para a tela do teclado. Tudo fica guardado.'],
-  profiles: ['Perfis', 'Cada perfil guarda luz, cores, teclas e macros. Troque com um clique ou deixe trocar sozinho por programa.'],
-  settings: ['Ajustes', 'Luz automática, atalhos, indicadores, Pomodoro e opções do aplicativo.'],
+  light: ['Iluminação', 'Escolha um efeito. A prévia aparece no desenho e o teclado muda na hora.'],
+  paint: ['Cor por tecla', 'Clique numa tecla para pintar, ou arraste por cima de várias.'],
+  keys: ['Teclas', 'Clique numa tecla do desenho e escolha o que ela vai fazer.'],
+  macros: ['Macros', 'Uma tecla que digita uma sequência inteira por você.'],
+  screen: ['Telinha', 'Mande um GIF ou imagem para a tela do teclado.'],
+  profiles: ['Perfis', 'Cada perfil guarda luz, cores, teclas e macros. Troque com um clique ou deixe trocar sozinho.'],
+  pomodoro: ['Pomodoro', 'Foco e pausa marcados nas teclas F1 a F12.'],
+  settings: ['Ajustes', 'Luz automática, atalho e opções do aplicativo.'],
   tester: ['Testar teclas', 'Aperte cada tecla do teclado. As que funcionam ficam verdes; clique duplo fica vermelho.'],
 };
-const NO_BOARD = ['macros', 'screen', 'profiles', 'settings'];
+const NO_BOARD = ['macros', 'screen', 'profiles', 'settings', 'pomodoro'];
 const onView = {}; // view name -> callback when it opens (filled by extras.js)
 function go(v) {
   stopRec();
@@ -156,6 +157,7 @@ function go(v) {
   $('#board').classList.toggle('painting', v === 'paint');
   $('#board').classList.toggle('testing', v === 'tester');
   if (v === 'screen') renderLibrary();
+  if (v === 'light') syncLight();
   if (onView[v]) onView[v]();
   renderBoard();
 }
@@ -171,8 +173,9 @@ const applyLight = debounce(() => {
 function initLight() {
   const box = $('#modes');
   for (const [id, name] of window.SK_MODES) {
-    const b = document.createElement('button'); b.className = 'mode'; b.textContent = name; b.dataset.id = id;
-    b.onclick = () => { state.light.mode = id; syncLight(); applyLight(); };
+    const b = document.createElement('button'); b.className = 'mode'; b.dataset.id = id;
+    b.textContent = name; if ((window.SK_MODE_INFO[id] || [])[1]) b.insertAdjacentHTML('beforeend', ' <i class="touch" title="Reage ao toque">✋</i>');
+    b.onclick = () => { state.light.mode = id; state.paintActive = false; syncLight(); applyLight(); };
     box.appendChild(b);
   }
   lightWheel = new window.ColorWheel($('#lightWheel'), { size: 150,
@@ -197,7 +200,12 @@ function renderDirs() {
 }
 function syncLight() {
   const l = state.light;
-  $$('.mode').forEach((m) => m.classList.toggle('on', +m.dataset.id === l.mode));
+  $$('.mode').forEach((m) => m.classList.toggle('on', !state.paintActive && +m.dataset.id === l.mode));
+  const name = (window.SK_MODES.find(([id]) => id === l.mode) || [0, ''])[1];
+  $('#lightNow').innerHTML = state.paintActive
+    ? '<b>O teclado está mostrando as suas cores por tecla.</b><span>Escolha um efeito abaixo para trocar, ou <a href="#" id="goPaint">continue pintando</a>.</span>'
+    : `<b>${esc(name)}</b><span>${esc((window.SK_MODE_INFO[l.mode] || [''])[0])}</span>`;
+  const gp = $('#goPaint'); if (gp) gp.onclick = (e) => { e.preventDefault(); go('paint'); };
   $('#lightRandom').checked = l.random;
   $('#lightBright').value = l.brightness; $('#lightBrightOut').textContent = l.brightness;
   $('#lightSpeed').value = l.speed; $('#lightSpeedOut').textContent = l.speed;

@@ -9,14 +9,18 @@
 <body>
   <nav class="rail">
     <div class="brand"><img class="logo" src="icon.png" alt=""><div><b>SK80</b><small>Studio</small></div></div>
-    <button class="nav active" data-view="light"><i>◐</i><span>Iluminação</span></button>
-    <button class="nav" data-view="paint"><i>▦</i><span>Cor por tecla</span></button>
-    <button class="nav" data-view="keys"><i>⌘</i><span>Teclas</span></button>
-    <button class="nav" data-view="macros"><i>⟳</i><span>Macros</span></button>
-    <button class="nav" data-view="screen"><i>▣</i><span>Telinha</span></button>
-    <button class="nav" data-view="profiles"><i>◈</i><span>Perfis</span></button>
-    <button class="nav" data-view="tester"><i>✓</i><span>Testar teclas</span></button>
-    <button class="nav" data-view="settings"><i>⚙</i><span>Ajustes</span></button>
+    <div class="navgroup">No teclado</div>
+    <button class="nav active" data-view="light"><i>◐</i><span>Iluminação<small>Efeitos de luz</small></span></button>
+    <button class="nav" data-view="paint"><i>▦</i><span>Cor por tecla<small>Pinte tecla por tecla</small></span></button>
+    <button class="nav" data-view="keys"><i>⌘</i><span>Teclas<small>O que cada tecla faz</small></span></button>
+    <button class="nav" data-view="macros"><i>⟳</i><span>Macros<small>Sequências de teclas</small></span></button>
+    <button class="nav" data-view="screen"><i>▣</i><span>Telinha<small>GIFs e imagens</small></span></button>
+    <div class="navgroup">Ferramentas</div>
+    <button class="nav" data-view="profiles"><i>◈</i><span>Perfis<small>Jogos, trabalho, noite…</small></span></button>
+    <button class="nav" data-view="pomodoro"><i>◷</i><span>Pomodoro<small>Cronômetro nas teclas F</small></span></button>
+    <button class="nav" data-view="tester"><i>✓</i><span>Testar teclas<small>Ache tecla com defeito</small></span></button>
+    <div class="grow"></div>
+    <button class="nav" data-view="settings"><i>⚙</i><span>Ajustes<small>Luz automática, atalhos</small></span></button>
     <div class="conn" id="conn"><span class="led"></span><span id="connText">Procurando teclado…</span></div>
   </nav>
 
@@ -27,7 +31,7 @@
         <p id="viewSub"></p>
       </div>
       <div class="topright">
-        <label class="profpick" title="Perfil ativo">Perfil <select id="profSel"></select></label>
+        <label class="profpick" title="Tudo que você muda fica salvo neste perfil">Perfil em uso <select id="profSel"></select></label>
         <div class="sync" id="sync"><span class="sdot"></span><span id="syncText">Tudo salvo no teclado</span></div>
       </div>
     </header>
@@ -38,19 +42,20 @@
 
     <!-- ILUMINAÇÃO -->
     <section class="view active" id="view-light">
+      <div class="now" id="lightNow"></div>
       <div class="grid-light">
         <div class="card">
-          <h3>Efeito</h3>
+          <h3>Escolha um efeito</h3>
           <div class="modes" id="modes"></div>
-          <p class="hint">Passe o mouse no teclado desenhado para ver os efeitos que reagem ao toque.</p>
+          <p class="hint">Os marcados com ✋ reagem ao toque: passe o mouse no teclado desenhado para ver.</p>
         </div>
         <div class="card">
           <h3>Cor</h3>
           <div id="lightWheel"></div>
-          <label class="toggle"><input type="checkbox" id="lightRandom"><span></span>Cores aleatórias (arco-íris)</label>
+          <label class="toggle"><input type="checkbox" id="lightRandom"><span></span>Usar todas as cores (arco-íris)</label>
         </div>
         <div class="card">
-          <h3>Ajustes</h3>
+          <h3>Brilho e velocidade</h3>
           <div class="slider"><span>Brilho</span><input type="range" id="lightBright" min="0" max="5" step="1" value="5"><output id="lightBrightOut">5</output></div>
           <div class="slider"><span>Velocidade</span><input type="range" id="lightSpeed" min="0" max="5" step="1" value="3"><output id="lightSpeedOut">3</output></div>
           <div class="dir" id="dirRow"><span>Direção</span><div class="seg" id="lightDir"></div></div>
@@ -265,67 +270,76 @@
       </div>
     </section>
 
+    <!-- POMODORO -->
+    <section class="view" id="view-pomodoro">
+      <div class="pomo-page">
+        <div class="pomo">
+          <div class="pomo-time" id="pomoTime">25:00</div>
+          <div class="pomo-phase" id="pomoPhase">Parado</div>
+        </div>
+        <div class="pomo-set">
+          <label class="times"><input type="number" id="pomoWork" min="1" max="120" value="25"> minutos de foco</label>
+          <label class="times"><input type="number" id="pomoBreak" min="1" max="60" value="5"> minutos de pausa</label>
+        </div>
+        <div class="row center"><button class="btn primary" id="pomoStart">Começar</button><button class="btn ghost" id="pomoStop">Parar</button></div>
+        <p class="hint">As teclas F1 a F12 viram uma barra que vai apagando: vermelha no foco, verde na pausa. Na troca, a fileira pisca. Deixe o app aberto (ou na bandeja) enquanto usa.</p>
+      </div>
+    </section>
+
     <!-- AJUSTES -->
     <section class="view" id="view-settings">
-      <div class="grid-set">
-        <div class="card">
-          <h3>Luz automática</h3>
-          <label class="toggle"><input type="checkbox" id="alLock"><span></span>Apagar quando bloquear o PC</label>
-          <div class="setrow"><span>Apagar depois de parado</span>
-            <select id="alIdle" style="width:120px"><option value="0">Nunca</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hora</option></select></div>
-          <label class="toggle" style="margin-top:12px"><input type="checkbox" id="ntOn"><span></span>Luz por horário</label>
-          <div class="setrow"><span>Das</span><span><input type="time" id="ntFrom" class="tm"> às <input type="time" id="ntTo" class="tm"></span></div>
-          <div class="setrow"><span>Fazer</span><select id="ntAction" style="width:170px"><option value="dim">Diminuir o brilho</option><option value="off">Apagar a luz</option><option value="profile">Usar um perfil</option></select></div>
-          <div class="setrow" id="ntBrightWrap"><span>Brilho à noite</span><select id="ntBright" style="width:80px"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
-          <div class="setrow" id="ntProfWrap"><span>Perfil</span><select id="ntProfile" style="width:170px"></select></div>
-          <p class="hint">A luz volta sozinha quando você desbloqueia, mexe no PC ou o horário acaba.</p>
-        </div>
-        <div class="card">
-          <h3>Atalho de perfil</h3>
-          <div class="setrow"><span>Próximo perfil</span><kbd class="hk" id="hkText"></kbd></div>
-          <div class="row" style="margin-top:10px"><button class="btn small" id="hkRec">Gravar atalho</button><button class="btn ghost small" id="hkOff">Desligar</button></div>
-          <p class="hint" id="hkStatus"></p>
-          <p class="hint">Funciona em qualquer programa, até com a janela fechada (com a bandeja ligada).</p>
-          <h3 style="margin-top:22px">Indicadores</h3>
-          <div class="setrow"><label class="toggle" style="margin:0"><input type="checkbox" id="capsOn"><span></span>Caps Lock aceso</label><input type="color" id="capsColor" class="sm"></div>
-          <div class="setrow"><label class="toggle" style="margin:0"><input type="checkbox" id="msgOn"><span></span>Aviso de mensagem</label><input type="color" id="msgColor" class="sm"></div>
-          <div class="setrow"><span>Tecla que pisca</span><select id="msgKey" style="width:110px"></select></div>
-          <div class="chips" id="msgApps" style="margin-top:10px"></div>
-          <div class="row"><input class="text" id="msgApp" placeholder="programa (ex.: whatsapp)" style="max-width:190px"><button class="btn small" id="msgAdd">Adicionar</button></div>
-          <p class="hint" id="msgStatus"></p>
-          <p class="hint">O aviso olha o número de não lidas no título da janela, como “(3) WhatsApp”. Os indicadores usam as cores ao vivo: com efeitos animados só a tecla do aviso é enviada (experimental).</p>
-        </div>
-        <div class="card">
-          <h3>Pomodoro</h3>
-          <div class="pomo">
-            <div class="pomo-time" id="pomoTime">25:00</div>
-            <div class="pomo-phase" id="pomoPhase">Parado</div>
+      <div class="settings">
+        <h2>Luz automática</h2>
+        <div class="slist">
+          <div class="srow"><div><b>Apagar quando bloquear o PC</b><small>Apaga com Win + L e acende de novo quando você desbloqueia.</small></div>
+            <label class="toggle"><input type="checkbox" id="alLock"><span></span></label></div>
+          <div class="srow"><div><b>Apagar quando ficar parado</b><small>Se ninguém mexer no teclado nem no mouse por esse tempo.</small></div>
+            <select id="alIdle"><option value="0">Nunca</option><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15">15 minutos</option><option value="30">30 minutos</option><option value="60">1 hora</option></select></div>
+          <div class="srow"><div><b>Mudar a luz à noite</b><small>Num horário fixo, todo dia.</small></div>
+            <label class="toggle"><input type="checkbox" id="ntOn"><span></span></label></div>
+          <div class="sub" id="ntBox">
+            <div class="srow"><div><b>Horário</b></div><span class="inline-ctl">das <input type="time" id="ntFrom" class="tm"> às <input type="time" id="ntTo" class="tm"></span></div>
+            <div class="srow"><div><b>O que fazer</b></div><select id="ntAction"><option value="dim">Diminuir o brilho</option><option value="off">Apagar a luz</option><option value="profile">Usar um perfil</option></select></div>
+            <div class="srow" id="ntBrightWrap"><div><b>Brilho à noite</b><small>0 é o mais fraco.</small></div><select id="ntBright"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+            <div class="srow" id="ntProfWrap"><div><b>Perfil da noite</b></div><select id="ntProfile"></select></div>
           </div>
-          <div class="row" style="margin:12px 0">
-            <label class="times" style="margin:0"><input type="number" id="pomoWork" min="1" max="120" value="25"> min foco</label>
-            <label class="times"><input type="number" id="pomoBreak" min="1" max="60" value="5"> min pausa</label>
-          </div>
-          <div class="row"><button class="btn primary" id="pomoStart">Começar</button><button class="btn ghost" id="pomoStop">Parar</button></div>
-          <p class="hint">As teclas F1–F12 viram uma barra que vai apagando com o tempo (vermelho no foco, verde na pausa). Usa as cores ao vivo, então o app precisa ficar aberto.</p>
         </div>
-        <div class="card">
-          <h3>Teclado</h3>
-          <div class="setrow"><span>Apagar a luz depois de</span><div class="seg small disabled"><button>Nunca</button><button>1 min</button><button>5 min</button><button>30 min</button></div></div>
-          <div class="setrow"><span>Tempo de resposta das teclas</span><span class="hint inline">—</span></div>
-          <div class="setrow"><span>Relógio da telinha</span><button class="btn ghost small" disabled>Acertar a hora</button></div>
-          <p class="hint">O driver antigo tem essas três opções, mas ainda não sei quais bytes ele manda para o teclado. Falta uma captura com o driver antigo para liberar.</p>
+
+        <h2>Atalho</h2>
+        <div class="slist">
+          <div class="srow"><div><b>Trocar para o próximo perfil</b><small id="hkStatus">Funciona em qualquer programa, até com o app na bandeja.</small></div>
+            <span class="inline-ctl"><kbd class="hk" id="hkText"></kbd><button class="btn small" id="hkRec">Mudar</button><button class="btn ghost small" id="hkOff">Desligar</button></span></div>
         </div>
-        <div class="card">
-          <h3>Aplicativo</h3>
-          <label class="toggle"><input type="checkbox" id="setTray"><span></span>Ficar na bandeja ao fechar a janela</label>
-          <label class="toggle"><input type="checkbox" id="setAuto"><span></span>Iniciar com o Windows (escondido na bandeja)</label>
-          <label class="toggle"><input type="checkbox" id="setTest"><span></span>Modo teste da telinha: até 255 quadros</label>
-          <p class="hint">Modo teste: passa do limite já testado (33 quadros). Se a telinha travar, desconecte e conecte o teclado.</p>
-          <div class="about">
-            <img src="icon.png" alt="">
-            <div class="grow"><b>SK80 Studio</b><small id="appVer"></small><small id="updText"></small></div>
+
+        <h2>Luzes de aviso</h2>
+        <div class="slist">
+          <div class="srow"><div><b>Caps Lock aceso</b><small>A tecla Caps fica nesta cor enquanto o Caps Lock estiver ligado.</small></div>
+            <span class="inline-ctl"><input type="color" id="capsColor" class="sm"><label class="toggle"><input type="checkbox" id="capsOn"><span></span></label></span></div>
+          <div class="srow"><div><b>Piscar quando chegar mensagem</b><small>Para programas que mostram as não lidas no título, como “(3) WhatsApp”.</small></div>
+            <span class="inline-ctl"><input type="color" id="msgColor" class="sm"><label class="toggle"><input type="checkbox" id="msgOn"><span></span></label></span></div>
+          <div class="sub" id="msgBox">
+            <div class="srow"><div><b>Tecla que pisca</b></div><select id="msgKey"></select></div>
+            <div class="srow col"><div><b>Programas</b><small id="msgStatus"></small></div>
+              <div class="chips" id="msgApps"></div>
+              <span class="inline-ctl"><input class="text" id="msgApp" placeholder="nome do programa, ex.: whatsapp"><button class="btn small" id="msgAdd">Adicionar</button></span></div>
           </div>
-          <div class="row"><button class="btn ghost small" id="updCheck">Procurar atualização</button><button class="btn primary small" id="updInstall" style="display:none">Reiniciar e atualizar</button></div>
+        </div>
+        <p class="hint">As luzes de aviso funcionam melhor com o efeito Estático ou com Cor por tecla. Com efeitos animados, só a tecla do aviso é controlada, e o resto pode se comportar diferente.</p>
+
+        <h2>Aplicativo</h2>
+        <div class="slist">
+          <div class="srow"><div><b>Ficar na bandeja ao fechar</b><small>O X esconde a janela; perfis automáticos, atalho e avisos continuam funcionando.</small></div>
+            <label class="toggle"><input type="checkbox" id="setTray"><span></span></label></div>
+          <div class="srow"><div><b>Abrir junto com o Windows</b><small>Começa escondido na bandeja.</small></div>
+            <label class="toggle"><input type="checkbox" id="setAuto"><span></span></label></div>
+          <div class="srow"><div><b>GIFs grandes na telinha (teste)</b><small>Libera até 255 quadros. Só 33 foram testados; se a telinha travar, desconecte e conecte o teclado.</small></div>
+            <label class="toggle"><input type="checkbox" id="setTest"><span></span></label></div>
+        </div>
+
+        <div class="about">
+          <img src="icon.png" alt="">
+          <div class="grow"><b>SK80 Studio</b><small id="appVer"></small><small id="updText"></small></div>
+          <button class="btn ghost small" id="updCheck">Procurar atualização</button><button class="btn primary small" id="updInstall" style="display:none">Reiniciar e atualizar</button>
         </div>
       </div>
     </section>

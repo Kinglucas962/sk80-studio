@@ -2,6 +2,12 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.0.2': [
+    'Menu lateral em grupos, com uma linha explicando cada parte.',
+    'A Iluminação mostra o que o teclado está mostrando agora e explica cada efeito; os que reagem ao toque têm ✋.',
+    'Ajustes reorganizados em lista, como nas Configurações do Windows.',
+    'O Pomodoro ganhou uma aba própria.',
+  ],
   '1.0.1': [
     'Apaga a luz quando o PC bloqueia ou fica parado, e volta quando você chega.',
     'Luz por horário: diminui, apaga ou troca de perfil à noite.',
@@ -136,6 +142,8 @@ function onTitle(name, title) {
   unread[name] = titleCount(title);
   const any = state.settings.msg.on && Object.values(unread).some((n) => n > 0);
   liveSet('msg', any ? (map, t) => { map[state.settings.msg.key] = (t % 1) < 0.5 ? hex2rgb(state.settings.msg.color) : [0, 0, 0]; } : null);
+  const showMsg = () => $('#msgBox').classList.toggle('off', !s.msg.on);
+  showMsg(); $('#msgOn').addEventListener('change', showMsg);
   renderMsgStatus();
 }
 function renderMsgStatus() {
@@ -155,7 +163,8 @@ function refreshWatch() {
 async function applyHotkey() {
   const ok = await window.sk.setHotkey(state.settings.hotkey || '').catch(() => false);
   $('#hkText').textContent = state.settings.hotkey ? state.settings.hotkey.replace('Control', 'Ctrl').replace(/\+/g, ' + ') : 'desligado';
-  $('#hkStatus').textContent = state.settings.hotkey && !ok ? 'Outro programa já usa esse atalho. Escolha outro.' : '';
+  $('#hkStatus').textContent = !state.settings.hotkey ? 'Desligado. Clique em Mudar para escolher um atalho.' : ok ? 'Funciona em qualquer programa, até com o app na bandeja.' : 'Outro programa já usa esse atalho. Clique em Mudar e escolha outro.';
+  $('#hkStatus').classList.toggle('bad', !!state.settings.hotkey && !ok);
 }
 async function nextProfile() {
   const i = state.profiles.findIndex((p) => p.id === state.activeProfile);
@@ -287,8 +296,9 @@ function initAutoLight() {
   const fillProf = () => { $('#ntProfile').innerHTML = state.profiles.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join(''); $('#ntProfile').value = n.profile || ''; };
   fillProf();
   const showAct = () => { $('#ntBrightWrap').style.display = n.action === 'dim' ? '' : 'none'; $('#ntProfWrap').style.display = n.action === 'profile' ? '' : 'none'; };
-  showAct();
-  const save = () => { persist(); nightTick(); };
+  const showNight = () => $('#ntBox').classList.toggle('off', !n.on);
+  showAct(); showNight();
+  const save = () => { persist(); nightTick(); showNight(); };
   $('#ntOn').onchange = (e) => { n.on = e.target.checked; save(); };
   $('#ntFrom').onchange = (e) => { n.from = e.target.value; save(); };
   $('#ntTo').onchange = (e) => { n.to = e.target.value; save(); };
@@ -322,10 +332,12 @@ function initIndicators() {
     if (!s.msg.apps.includes(v)) s.msg.apps.push(v);
     $('#msgApp').value = ''; persist(); renderApps(); refreshWatch();
   };
+  const showMsg = () => $('#msgBox').classList.toggle('off', !s.msg.on);
+  showMsg(); $('#msgOn').addEventListener('change', showMsg);
   renderMsgStatus();
 }
 function initHotkeyUI() {
-  $('#hkRec').onclick = () => { hkCapture = true; $('#hkText').textContent = 'Aperte o atalho…'; $('#hkRec').blur(); };
+  $('#hkRec').onclick = () => { hkCapture = true; $('#hkText').textContent = 'Aperte o atalho…'; $('#hkStatus').textContent = 'Segure Ctrl, Alt ou Shift e aperte uma letra. Esc cancela.'; $('#hkRec').blur(); };
   $('#hkOff').onclick = () => { state.settings.hotkey = ''; persist(); applyHotkey(); };
   window.addEventListener('keydown', (e) => {
     if (!hkCapture) return;

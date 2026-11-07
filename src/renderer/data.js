@@ -113,6 +113,30 @@ window.SK_DIRS = {
   18: [['↗ Sentido 1', 0], ['Sentido 2', 1]],
 };
 
+// one-line explanation per effect, and whether it reacts to typing (shown in the Iluminação view)
+window.SK_MODE_INFO = {
+  0: ['Todas as luzes apagadas.'],
+  1: ['Uma cor parada em todas as teclas.'],
+  2: ['As teclas acendem quando você aperta e apagam devagar.', true],
+  3: ['Tudo aceso; a tecla apertada apaga e depois volta.', true],
+  4: ['Teclas piscam em lugares aleatórios, como estrelas.'],
+  5: ['Gotas de luz caem pelas colunas.'],
+  6: ['Cada tecla vai mudando de cor sozinha.'],
+  7: ['O teclado acende e apaga devagar.'],
+  8: ['O teclado inteiro passa por todas as cores.'],
+  9: ['Ondas de cor saem do centro para fora.'],
+  10: ['Faixas de cor descem ou sobem pelo teclado.'],
+  11: ['Faixas de cor andam na diagonal.'],
+  12: ['As cores giram em volta do centro.'],
+  13: ['A fileira da tecla apertada acende a partir dela.', true],
+  14: ['Duas ondas saem da tecla apertada, uma para cada lado.', true],
+  15: ['Um anel de luz se espalha a partir da tecla apertada.', true],
+  16: ['Uma fileira inteira acende de cada vez.'],
+  17: ['Uma onda sai do H para os dois lados, subindo e descendo.'],
+  18: ['A luz varre do Ctrl até a telinha.'],
+  19: ['Cada fileira tem uma faixa de luz que vai e volta.'],
+};
+
 // [mode id, name, has direction] — direction confirmed in captures for modes 10, 11, 16, 18
 window.SK_MODES = [
   [1, 'Estático', false], [2, 'Acende ao tocar', false], [3, 'Apaga ao tocar', false], [4, 'Cintilante', false],
