@@ -30,7 +30,7 @@
 - **Atalho global** para trocar de perfil (padrão Ctrl + Alt + P).
 - **Indicadores**: o Caps Lock fica aceso numa cor, e uma tecla pisca quando chega mensagem (WhatsApp, Telegram…).
 - **Testador de teclas**: mostra quais teclas funcionam e avisa se alguma dá clique duplo.
-- **Galeria da comunidade**: baixe perfis prontos ou [mande o seu](https://github.com/Kinglucas962/sk80-studio/issues/new?template=perfil.md).
+- **Galeria da comunidade**: baixe perfis prontos ou [mande o seu](https://github.com/Kinglucas962/sk80-studio/issues/new?template=perfil.md) (até 5 perfis por conta).
 - **Bandeja do Windows**, início junto com o Windows e **atualização automática**.
 
 Tudo é salvo sozinho: não existe botão "Salvar".

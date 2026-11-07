@@ -5,6 +5,8 @@ title: "Perfil para a galeria: "
 labels: galeria
 ---
 
+> Cada conta pode mandar até 5 perfis para a galeria. A partir do 6º, o envio é fechado automaticamente.
+
 **Nome do perfil:**
 
 **Descrição curta (uma frase):**

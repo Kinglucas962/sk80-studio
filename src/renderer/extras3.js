@@ -174,6 +174,55 @@ function fxTemplates() {
     rows: () => { const fr = n(6); const rows = [29, 79, 120, 159, 200, 241]; fr.forEach((f, i) => LAYOUT.forEach((k) => { const r = rows.reduce((b, y, j) => (Math.abs(k.y - y) < Math.abs(k.y - rows[b]) ? j : b), 0); if (r === i) f[k.idx] = hslHex(i * 60); })); return { ms: 200, frames: fr }; },
   };
 }
+// ---- copy a built-in light effect into an editable custom effect ----
+// Records the preview (sim.js) at full brightness. For effects that repeat, it looks for the time where the
+// picture comes back to the start, so the loop has no jump; otherwise it records 3 seconds.
+function lightToFrames() {
+  const l = state.light;
+  const s = new window.LightSim(sim.keys);
+  const o = { mode: l.mode, rgb: hex2rgb(l.color), random: l.random, speed: l.speed, brightness: 5, direction: l.direction };
+  const at = (t) => s.frame(t, o);
+  const reactive = (window.SK_MODE_INFO[l.mode] || [])[1];
+  const diff = (a, b) => { let d = 0, n = 0; for (const k in a) { const p = a[k] || [0, 0, 0], q = b[k] || [0, 0, 0]; d += Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) + Math.abs(p[2] - q[2]); n += 3; } return n ? d / n : 0; };
+  let T = 3, still = false, looped = false;
+  if (!reactive) {
+    const c0 = at(0);
+    if (diff(c0, at(0.37)) < 1 && diff(c0, at(1.13)) < 1) still = true; // doesn't move
+    else {
+      // first moment (after 0.4 s) where the keyboard looks like the start again = one full turn
+      for (let t = 0.4; t <= 12; t += 0.02) if (diff(c0, at(t)) < 3) { T = t; looped = true; break; }
+    }
+  }
+  const count = still ? 1 : Math.max(6, Math.min(48, Math.round(T / 0.1)));
+  const hex = (c) => '#' + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+  const frames = [];
+  for (let i = 0; i < count; i++) {
+    const c = at(reactive ? 2 + (i * T) / count : (i * T) / count), f = {};
+    for (const k of LAYOUT) { const v = c[k.idx]; if (v && Math.max(v[0], v[1], v[2]) > 10) f[k.idx] = hex(v); }
+    frames.push(f);
+  }
+  return { ms: still ? 300 : Math.max(50, Math.round((T * 1000) / count / 10) * 10), frames, looped };
+}
+function copyLightToFx() {
+  const l = state.light;
+  if (state.paintActive) { go('effects'); fxNewFromPaint(); return; }
+  if (!l.mode) { toast('A luz está desligada: escolha um efeito primeiro.'); return; }
+  const name = (window.SK_MODES.find(([id]) => id === l.mode) || [0, 'Efeito'])[1];
+  const r = lightToFrames();
+  state.effects.push({ id: uid(), name: name + ' (cópia)', ms: r.ms, frames: r.frames });
+  fx.sel = state.effects.length - 1; fx.frame = 0; persist();
+  go('effects'); renderFx(); renderBoard();
+  const why = (window.SK_MODE_INFO[l.mode] || [])[1] ? ' Ele reage ao toque, então os quadros são 3 segundos de digitação simulada.'
+    : r.frames.length > 1 && !r.looped ? ' Ele não se repete certinho, então os quadros são 3 segundos dele.' : '';
+  toast(`“${name}” virou um efeito próprio com ${r.frames.length} quadro(s).${why} Agora é só editar.`);
+}
+// per-key colours (Cor por tecla) become a one-frame effect
+function fxNewFromPaint() {
+  const f = {}; for (const [i, c] of Object.entries(state.paint)) f[i] = c;
+  state.effects.push({ id: uid(), name: 'Cor por tecla (cópia)', ms: 300, frames: [f] });
+  fx.sel = state.effects.length - 1; fx.frame = 0; persist(); renderFx(); renderBoard();
+  toast('Suas cores por tecla viraram o primeiro quadro de um efeito próprio.');
+}
 function fxNew(kind) {
   const t = fxTemplates()[kind]();
   const names = { blank: 'Meu efeito', wave: 'Onda arco-íris', blink: 'Piscar', run: 'Corrida', rows: 'Fileiras' };
@@ -253,6 +302,7 @@ function renderFx() {
 }
 function initFx() {
   $$('#fxNewBtns button').forEach((b) => (b.onclick = () => fxNew(b.dataset.v)));
+  $('#copyToFx').onclick = copyLightToFx;
   $('#fxName').oninput = (e) => { curFx().name = e.target.value || 'Sem nome'; persist(); renderFx(); };
   $('#fxSpeed').oninput = (e) => { curFx().ms = +e.target.value; $('#fxSpeedOut').textContent = e.target.value + ' ms'; persist(); renderFrames(); };
   $('#fxColor').oninput = (e) => { fx.color = e.target.value; fx.tool = 'brush'; renderFx(); };

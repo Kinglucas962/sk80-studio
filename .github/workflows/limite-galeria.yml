@@ -1,0 +1,45 @@
+# Community gallery: each GitHub account can send at most 5 profiles.
+# Runs when a gallery issue is opened or reopened. The 6th send (and later ones) is closed with a message
+# and the "acima-do-limite" label; those don't count toward the 5. The repo owner has no limit.
+name: Limite da galeria
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  issues: write
+
+jobs:
+  limite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const LIMIT = 5;
+            const issue = context.payload.issue;
+            const isGallery = (i) =>
+              i.labels.some((l) => (l.name || l) === 'galeria') || /^perfil para a galeria/i.test(i.title || '');
+            if (!isGallery(issue)) return;
+
+            const { owner, repo } = context.repo;
+            const author = issue.user.login;
+            // sent without the form: tag it so it is counted like the others
+            if (!issue.labels.some((l) => l.name === 'galeria')) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: ['galeria'] });
+            }
+            if (author.toLowerCase() === owner.toLowerCase()) return;
+
+            const mine = await github.paginate(github.rest.issues.listForRepo, { owner, repo, creator: author, state: 'all', per_page: 100 });
+            const counted = mine.filter((i) => !i.pull_request && isGallery(i) && !i.labels.some((l) => l.name === 'acima-do-limite'));
+            core.info(`${author}: ${counted.length} envio(s) para a galeria`);
+            if (counted.length <= LIMIT) return;
+
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: issue.number,
+              body: `Oi, @${author}! Cada conta pode mandar no máximo ${LIMIT} perfis para a galeria, e você já mandou ${LIMIT}. Por isso este envio foi fechado.\n\n` +
+                'Se quiser trocar um perfil seu por este, comente aqui dizendo qual dos anteriores deve sair.',
+            });
+            await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: ['acima-do-limite'] });
+            await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed', state_reason: 'not_planned' });

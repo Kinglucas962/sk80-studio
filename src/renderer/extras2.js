@@ -2,6 +2,10 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.4': [
+    'Em Iluminação, “Copiar para Efeitos próprios” transforma o efeito escolhido em quadros que você pode editar. Com Cor por tecla ativa, suas cores viram o primeiro quadro.',
+    'Galeria: cada conta do GitHub pode mandar até 5 perfis.',
+  ],
   '1.1.3': [
     'Efeitos próprios ganharam conta-gotas: clique numa tecla para pegar a cor dela.',
     'Atalho Alt + clique numa tecla pega a cor, em Efeitos próprios e em Cor por tecla.',
