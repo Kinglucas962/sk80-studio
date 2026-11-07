@@ -22,6 +22,11 @@
 - **Telinha**: mande GIFs e imagens para a tela de 160×96. Dá para enquadrar com zoom e escolher os quadros. Tudo que você envia fica numa biblioteca.
 - **Perfis**: cada perfil guarda luz, cores, teclas e macros. Troque com um clique, ou deixe o app trocar sozinho quando você abrir um programa ou jogo.
 - **Pomodoro**: as teclas F1–F12 viram um cronômetro que vai apagando.
+- **Luz automática**: apaga quando o PC bloqueia ou fica parado, e muda por horário (diminui, apaga ou troca de perfil à noite).
+- **Atalho global** para trocar de perfil (padrão Ctrl + Alt + P).
+- **Indicadores**: o Caps Lock fica aceso numa cor, e uma tecla pisca quando chega mensagem (WhatsApp, Telegram…).
+- **Testador de teclas**: mostra quais teclas funcionam e avisa se alguma dá clique duplo.
+- **Galeria da comunidade**: baixe perfis prontos ou [mande o seu](https://github.com/Kinglucas962/sk80-studio/issues/new?template=perfil.md).
 - **Bandeja do Windows**, início junto com o Windows e **atualização automática**.
 
 Tudo é salvo sozinho: não existe botão "Salvar".
