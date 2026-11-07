@@ -141,7 +141,8 @@ const VIEWS = {
   macros: ['Macros', 'Grave sequências de teclas e escolha como elas tocam.'],
   screen: ['Telinha', 'Mande GIFs e imagens para a tela do teclado. Tudo fica guardado.'],
   profiles: ['Perfis', 'Cada perfil guarda luz, cores, teclas e macros. Troque com um clique ou deixe trocar sozinho por programa.'],
-  settings: ['Ajustes', 'Pomodoro, opções do teclado e do aplicativo.'],
+  settings: ['Ajustes', 'Luz automática, atalhos, indicadores, Pomodoro e opções do aplicativo.'],
+  tester: ['Testar teclas', 'Aperte cada tecla do teclado. As que funcionam ficam verdes; clique duplo fica vermelho.'],
 };
 const NO_BOARD = ['macros', 'screen', 'profiles', 'settings'];
 const onView = {}; // view name -> callback when it opens (filled by extras.js)
@@ -153,6 +154,7 @@ function go(v) {
   $('#viewTitle').textContent = VIEWS[v][0]; $('#viewSub').textContent = VIEWS[v][1];
   $('#boardWrap').style.display = NO_BOARD.includes(v) ? 'none' : '';
   $('#board').classList.toggle('painting', v === 'paint');
+  $('#board').classList.toggle('testing', v === 'tester');
   if (v === 'screen') renderLibrary();
   if (onView[v]) onView[v]();
   renderBoard();
@@ -610,6 +612,7 @@ async function sendScreen() {
   if (ok && scrSource) {
     const g = await window.sk.gifSave({ name: scrSource.name, type: scrSource.type, fit, speed: +$('#scrSpeed').value, bg: $('#scrBg').value, crop, range, sent: true }, new Uint8Array(await scrSource.blob.arrayBuffer()));
     scrSource.id = g.id; activeId = g.id;
+    state.settings.lastGif = g.id; persist(); // what the screen is showing now (used by "GIF por perfil")
   }
   $('#scrSend').disabled = false; $('#scrSend').textContent = 'Enviar para a telinha';
   setTimeout(() => ($('#scrProg div').style.width = '0'), 1200);

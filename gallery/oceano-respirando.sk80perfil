@@ -1,0 +1,25 @@
+{
+ "app": "sk80-studio",
+ "kind": "profile",
+ "version": 1,
+ "name": "Oceano respirando",
+ "apps": [],
+ "data": {
+  "light": {
+   "mode": 7,
+   "color": "#00c8ff",
+   "random": false,
+   "brightness": 4,
+   "speed": 2,
+   "direction": 0
+  },
+  "paint": {},
+  "paintBright": 5,
+  "paintActive": false,
+  "keymap": {
+   "top": {},
+   "fn": {}
+  },
+  "macros": []
+ }
+}

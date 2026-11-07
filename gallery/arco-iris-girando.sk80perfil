@@ -1,0 +1,25 @@
+{
+ "app": "sk80-studio",
+ "kind": "profile",
+ "version": 1,
+ "name": "Arco-íris girando",
+ "apps": [],
+ "data": {
+  "light": {
+   "mode": 12,
+   "color": "#ffffff",
+   "random": true,
+   "brightness": 5,
+   "speed": 2,
+   "direction": 0
+  },
+  "paint": {},
+  "paintBright": 5,
+  "paintActive": false,
+  "keymap": {
+   "top": {},
+   "fn": {}
+  },
+  "macros": []
+ }
+}

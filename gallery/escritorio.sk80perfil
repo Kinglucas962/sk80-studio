@@ -1,0 +1,25 @@
+{
+ "app": "sk80-studio",
+ "kind": "profile",
+ "version": 1,
+ "name": "Escritório discreto",
+ "apps": [],
+ "data": {
+  "light": {
+   "mode": 1,
+   "color": "#ffd9a0",
+   "random": false,
+   "brightness": 2,
+   "speed": 3,
+   "direction": 0
+  },
+  "paint": {},
+  "paintBright": 5,
+  "paintActive": false,
+  "keymap": {
+   "top": {},
+   "fn": {}
+  },
+  "macros": []
+ }
+}

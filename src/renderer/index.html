@@ -15,6 +15,7 @@
     <button class="nav" data-view="macros"><i>⟳</i><span>Macros</span></button>
     <button class="nav" data-view="screen"><i>▣</i><span>Telinha</span></button>
     <button class="nav" data-view="profiles"><i>◈</i><span>Perfis</span></button>
+    <button class="nav" data-view="tester"><i>✓</i><span>Testar teclas</span></button>
     <button class="nav" data-view="settings"><i>⚙</i><span>Ajustes</span></button>
     <div class="conn" id="conn"><span class="led"></span><span id="connText">Procurando teclado…</span></div>
   </nav>
@@ -234,6 +235,32 @@
             <button class="btn small" id="pAppAdd">Adicionar</button>
           </div>
           <p class="hint">Quando um desses programas fica na frente, o teclado troca para este perfil. Ao sair dele, volta para o perfil que você escolheu à mão. Para funcionar com a janela fechada, ligue “Ficar na bandeja” em Ajustes.</p>
+          <div class="lbl" style="margin-top:18px">GIF na telinha</div>
+          <div class="row"><select id="pGif" style="width:300px"></select><span class="hint inline">Enviado quando você troca para este perfil à mão (leva alguns segundos). Na troca automática não envia.</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="row"><h3 style="margin:0">Galeria da comunidade</h3><div class="grow"></div>
+          <button class="btn ghost small" id="galLoad">Atualizar</button><button class="btn small" id="galSend">Enviar o meu perfil</button></div>
+        <p class="hint">Perfis feitos por outras pessoas. “Baixar” só adiciona na sua lista; nada muda no teclado até você usar. Para mandar o seu: exporte o perfil e anexe no formulário do GitHub.</p>
+        <div class="galgrid" id="galGrid"></div>
+      </div>
+    </section>
+
+    <!-- TESTAR TECLAS -->
+    <section class="view" id="view-tester">
+      <div class="grid-set">
+        <div class="card">
+          <h3>Progresso</h3>
+          <div class="pomo"><div class="pomo-time" id="tCount">0 de 81</div><div class="pomo-phase">teclas funcionando</div></div>
+          <div class="setrow"><span>Última</span><b id="tLast">—</b></div>
+          <p class="hint" id="tWarn"></p>
+          <button class="btn ghost" id="tReset">Recomeçar</button>
+        </div>
+        <div class="card" style="grid-column: span 2">
+          <h3>Faltam</h3>
+          <p class="tmissing" id="tMissing"></p>
+          <p class="hint">A tecla Fn não aparece para o Windows, então não dá para testar aqui. Teclas que você trocou na aba Teclas aparecem como a função nova. Win e alguns atalhos do Windows podem agir mesmo durante o teste.</p>
         </div>
       </div>
     </section>
@@ -241,6 +268,33 @@
     <!-- AJUSTES -->
     <section class="view" id="view-settings">
       <div class="grid-set">
+        <div class="card">
+          <h3>Luz automática</h3>
+          <label class="toggle"><input type="checkbox" id="alLock"><span></span>Apagar quando bloquear o PC</label>
+          <div class="setrow"><span>Apagar depois de parado</span>
+            <select id="alIdle" style="width:120px"><option value="0">Nunca</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hora</option></select></div>
+          <label class="toggle" style="margin-top:12px"><input type="checkbox" id="ntOn"><span></span>Luz por horário</label>
+          <div class="setrow"><span>Das</span><span><input type="time" id="ntFrom" class="tm"> às <input type="time" id="ntTo" class="tm"></span></div>
+          <div class="setrow"><span>Fazer</span><select id="ntAction" style="width:170px"><option value="dim">Diminuir o brilho</option><option value="off">Apagar a luz</option><option value="profile">Usar um perfil</option></select></div>
+          <div class="setrow" id="ntBrightWrap"><span>Brilho à noite</span><select id="ntBright" style="width:80px"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+          <div class="setrow" id="ntProfWrap"><span>Perfil</span><select id="ntProfile" style="width:170px"></select></div>
+          <p class="hint">A luz volta sozinha quando você desbloqueia, mexe no PC ou o horário acaba.</p>
+        </div>
+        <div class="card">
+          <h3>Atalho de perfil</h3>
+          <div class="setrow"><span>Próximo perfil</span><kbd class="hk" id="hkText"></kbd></div>
+          <div class="row" style="margin-top:10px"><button class="btn small" id="hkRec">Gravar atalho</button><button class="btn ghost small" id="hkOff">Desligar</button></div>
+          <p class="hint" id="hkStatus"></p>
+          <p class="hint">Funciona em qualquer programa, até com a janela fechada (com a bandeja ligada).</p>
+          <h3 style="margin-top:22px">Indicadores</h3>
+          <div class="setrow"><label class="toggle" style="margin:0"><input type="checkbox" id="capsOn"><span></span>Caps Lock aceso</label><input type="color" id="capsColor" class="sm"></div>
+          <div class="setrow"><label class="toggle" style="margin:0"><input type="checkbox" id="msgOn"><span></span>Aviso de mensagem</label><input type="color" id="msgColor" class="sm"></div>
+          <div class="setrow"><span>Tecla que pisca</span><select id="msgKey" style="width:110px"></select></div>
+          <div class="chips" id="msgApps" style="margin-top:10px"></div>
+          <div class="row"><input class="text" id="msgApp" placeholder="programa (ex.: whatsapp)" style="max-width:190px"><button class="btn small" id="msgAdd">Adicionar</button></div>
+          <p class="hint" id="msgStatus"></p>
+          <p class="hint">O aviso olha o número de não lidas no título da janela, como “(3) WhatsApp”. Os indicadores usam as cores ao vivo: com efeitos animados só a tecla do aviso é enviada (experimental).</p>
+        </div>
         <div class="card">
           <h3>Pomodoro</h3>
           <div class="pomo">
@@ -252,7 +306,7 @@
             <label class="times"><input type="number" id="pomoBreak" min="1" max="60" value="5"> min pausa</label>
           </div>
           <div class="row"><button class="btn primary" id="pomoStart">Começar</button><button class="btn ghost" id="pomoStop">Parar</button></div>
-          <p class="hint">As teclas F1–F12 viram uma barra que vai apagando com o tempo (vermelho no foco, verde na pausa). Usa as cores ao vivo, então o app precisa ficar aberto. <b>Experimental</b>: ainda não testado no teclado.</p>
+          <p class="hint">As teclas F1–F12 viram uma barra que vai apagando com o tempo (vermelho no foco, verde na pausa). Usa as cores ao vivo, então o app precisa ficar aberto.</p>
         </div>
         <div class="card">
           <h3>Teclado</h3>
@@ -282,6 +336,12 @@
     <p class="hint">Clique para adicionar como macro nova; depois escolha a tecla que dispara. Atalhos com Ctrl, Shift, Alt ou Win dentro de macro ainda não foram testados no teclado.</p>
     <div id="libBody"></div>
   </div></div>
+  <div class="modal" id="newsModal"><div class="modal-card news-card">
+    <img src="icon.png" alt="" width="56">
+    <b id="newsTitle">Novidades</b>
+    <ul id="newsList"></ul>
+    <button class="btn primary" id="newsClose">Legal!</button>
+  </div></div>
   <div class="modal" id="keyModal"><div class="modal-card"><b>Aperte a tecla que quer inserir</b><p class="hint">Ela entra como um toque (apertar e soltar). Esc cancela.</p></div></div>
 
   <script src="data.js" charset="utf-8"></script>
@@ -289,5 +349,6 @@
   <script src="sim.js" charset="utf-8"></script>
   <script src="app.js" charset="utf-8"></script>
   <script src="extras.js" charset="utf-8"></script>
+  <script src="extras2.js" charset="utf-8"></script>
 </body>
 </html>

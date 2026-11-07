@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #0d0f12;
   --panel: #15181d;
   --panel2: #1b1f26;
@@ -326,3 +326,25 @@ small.live { color: #2ecc71; font-size: 11px; white-space: nowrap; }
 .about img { width: 44px; height: 44px; }
 .about b { display: block; }
 .about small { display: block; color: var(--mute); font-size: 12px; }
+
+/* ===== v1.0.1 ===== */
+.board.testing .key.t-ok { --glow: #2ecc71 !important; --ga: .55 !important; --halo: #2ecc7166 !important; }
+.board.testing .key.t-warn { --glow: #ff3b3b !important; --ga: .8 !important; --halo: #ff3b3b99 !important; }
+.board.testing .key.t-down { transform: scale(.9); --glow: #ffffff !important; --ga: .9 !important; }
+.tmissing { font-size: 15px; line-height: 1.9; word-spacing: 6px; margin: 0; }
+#tWarn.bad { color: #ff8a8a; font-weight: 600; }
+.tm { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; color: var(--text); }
+input[type=color].sm { width: 34px; height: 30px; border-radius: 8px; padding: 2px; }
+kbd.hk { padding: 4px 10px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 3px; font-family: inherit; font-size: 13px; }
+.galgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 14px; }
+.galcard { border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.galcard b { font-size: 14px; }
+.galcard small.by { color: var(--mute); font-size: 11.5px; }
+.galcard p { margin: 4px 0 8px; font-size: 12.5px; color: var(--mute); flex: 1; }
+.gprev { height: 74px; border-radius: 8px; background: #0f1115; overflow: hidden; display: grid; place-items: center; color: var(--mute); }
+.gmini { position: relative; width: 100%; height: 100%; }
+.gmini i { position: absolute; height: 9%; border-radius: 2px; }
+.gmini.fx { display: grid; place-items: center; opacity: .85; }
+.gmini.fx span { background: #000a; padding: 3px 10px; border-radius: 6px; font-size: 12px; color: #fff; }
+.news-card { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 480px; }
+.news-card ul { text-align: left; margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: var(--text); }

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, dialog, Tray, Menu, nativeImage, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, dialog, Tray, Menu, nativeImage, Notification, powerMonitor, globalShortcut, shell, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn, execFile } = require('child_process');
@@ -80,39 +80,85 @@ function buildTray() {
   ]));
 }
 
-// ---------- foreground program watcher (for automatic profiles) ----------
-let fgProc = null;
+// ---------- system watcher: foreground program, Caps Lock, window titles (one hidden PowerShell) ----------
+// Prints tab-separated lines:  fg <process>  |  caps <0|1>  |  title <process> <window title>
+let fgProc = null, watchCfg = { fg: false, caps: false, titles: [] }, watchKey = '';
 const FG_SCRIPT = `
 Add-Type @"
 using System; using System.Runtime.InteropServices;
 public static class FG {
  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
+ [DllImport("user32.dll")] public static extern short GetKeyState(int k);
 }
 "@
-$last = '?'
+$cfg = $env:SK80_WATCH | ConvertFrom-Json
+$last = '?'; $lastCaps = -1; $titles = @{}
+function Out1($s) { [Console]::Out.WriteLine($s); [Console]::Out.Flush() }
 while ($true) {
-  $p = 0; [void][FG]::GetWindowThreadProcessId([FG]::GetForegroundWindow(), [ref]$p)
-  $n = ''; try { $n = (Get-Process -Id $p -ErrorAction Stop).ProcessName } catch {}
-  if ($n -ne $last) { $last = $n; [Console]::Out.WriteLine($n); [Console]::Out.Flush() }
-  Start-Sleep -Milliseconds 800
+  if ($cfg.fg) {
+    $p = 0; [void][FG]::GetWindowThreadProcessId([FG]::GetForegroundWindow(), [ref]$p)
+    $n = ''; try { $n = (Get-Process -Id $p -ErrorAction Stop).ProcessName } catch {}
+    if ($n -ne $last) { $last = $n; Out1 ("fg" + [char]9 + $n) }
+  }
+  if ($cfg.caps) {
+    $c = [int]([FG]::GetKeyState(0x14) -band 1)
+    if ($c -ne $lastCaps) { $lastCaps = $c; Out1 ("caps" + [char]9 + $c) }
+  }
+  foreach ($name in $cfg.titles) {
+    $t = (Get-Process -Name $name -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle } | Select-Object -First 1).MainWindowTitle
+    if ($null -eq $t) { $t = '' }
+    if ($titles[$name] -ne $t) { $titles[$name] = $t; Out1 ("title" + [char]9 + $name + [char]9 + $t) }
+  }
+  Start-Sleep -Milliseconds 700
 }`;
-function watchForeground(on) {
-  if (!on) { if (fgProc) { fgProc.kill(); fgProc = null; } return; }
-  if (fgProc) return;
-  fgProc = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', FG_SCRIPT], { windowsHide: true });
+function setWatch(cfg) {
+  watchCfg = { fg: !!cfg.fg, caps: !!cfg.caps, titles: (cfg.titles || []).filter(Boolean) };
+  const key = JSON.stringify(watchCfg);
+  const on = watchCfg.fg || watchCfg.caps || watchCfg.titles.length;
+  if (key === watchKey && (fgProc || !on)) return;
+  watchKey = key;
+  if (fgProc) { fgProc.kill(); fgProc = null; }
+  if (!on) return;
+  const p = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', FG_SCRIPT],
+    { windowsHide: true, env: { ...process.env, SK80_WATCH: key } });
+  fgProc = p;
   let buf = '';
-  fgProc.stdout.on('data', (d) => {
-    buf += d.toString();
+  p.stdout.on('data', (d) => {
+    buf += d.toString('utf8');
     let i;
     while ((i = buf.indexOf('\n')) >= 0) {
-      const name = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
-      if (win) win.webContents.send('fg-app', name.toLowerCase());
+      const parts = buf.slice(0, i).replace(/\r$/, '').split('\t'); buf = buf.slice(i + 1);
+      if (!win) continue;
+      if (parts[0] === 'fg') win.webContents.send('fg-app', (parts[1] || '').toLowerCase());
+      else if (parts[0] === 'caps') win.webContents.send('caps', parts[1] === '1');
+      else if (parts[0] === 'title') win.webContents.send('win-title', parts[1].toLowerCase(), parts.slice(2).join('\t'));
     }
   });
-  fgProc.on('exit', () => { fgProc = null; });
+  p.on('exit', () => { if (fgProc === p) { fgProc = null; watchKey = ''; } });
+}
+const watchForeground = (on) => setWatch({ ...watchCfg, fg: on }); // kept for older callers
+
+// ---------- lock / idle ----------
+let idleTimer = null, lastAway = null;
+function startPowerWatch() {
+  const send = (away, why) => { if (away !== lastAway) { lastAway = away; if (win) win.webContents.send('away', away, why); } };
+  powerMonitor.on('lock-screen', () => send(true, 'lock'));
+  powerMonitor.on('unlock-screen', () => send(false, 'unlock'));
+  powerMonitor.on('suspend', () => send(true, 'suspend'));
+  powerMonitor.on('resume', () => send(false, 'resume'));
+  idleTimer = setInterval(() => { if (win) win.webContents.send('idle', powerMonitor.getSystemIdleTime()); }, 10000);
 }
 
+// ---------- global hotkey ----------
+let hotkey = null;
+function setHotkey(accel) {
+  if (hotkey) { try { globalShortcut.unregister(hotkey); } catch (_) {} hotkey = null; }
+  if (!accel) return true;
+  const ok = globalShortcut.register(accel, () => win && win.webContents.send('hotkey'));
+  if (ok) hotkey = accel;
+  return ok;
+}
 const wrap = (fn) => async (_e, ...args) => {
   try { return { ok: true, value: await fn(...args) }; } catch (e) { return { ok: false, error: e.message || String(e) }; }
 };
@@ -148,6 +194,19 @@ ipcMain.handle('apps:list', wrap(() => new Promise((resolve) => {
   });
 })));
 ipcMain.handle('fg:watch', wrap((on) => { watchForeground(!!on); return true; }));
+ipcMain.handle('watch:set', wrap((cfg) => { setWatch(cfg); return true; }));
+ipcMain.handle('hotkey:set', wrap((accel) => setHotkey(accel)));
+ipcMain.handle('notify', wrap((title, body) => { if (Notification.isSupported()) new Notification({ title, body, silent: true }).show(); return true; }));
+ipcMain.handle('open:url', wrap((url) => { if (/^https:\/\/github\.com\/Kinglucas962\//.test(url)) shell.openExternal(url); return true; }));
+ipcMain.handle('win:visible', wrap(() => !!(win && win.isVisible() && !win.isMinimized())));
+// ---- community gallery: files in the repo's gallery/ folder ----
+const GALLERY = 'https://raw.githubusercontent.com/Kinglucas962/sk80-studio/main/gallery/';
+ipcMain.handle('gallery:get', wrap(async (file) => {
+  if (!/^[\w.-]+$/.test(file)) throw new Error('nome inválido');
+  const r = await net.fetch(GALLERY + file + '?t=' + Date.now());
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.text();
+}));
 ipcMain.handle('tray:set', wrap((st) => { trayState = { ...trayState, ...st }; buildTray(); return true; }));
 // installed app: the exe itself; dev run: electron.exe + project folder
 const loginArgs = () => (app.isPackaged ? ['--hidden'] : [app.getAppPath(), '--hidden']);
@@ -231,6 +290,6 @@ ipcMain.handle('screen', wrap((frames, delays) => {
   return kb.uploadScreen(frames.map((f) => Buffer.from(f)), delays);
 }));
 
-app.whenReady().then(() => { createWindow(); initUpdater(); });
-app.on('before-quit', () => { quitting = true; watchForeground(false); });
+app.whenReady().then(() => { createWindow(); initUpdater(); startPowerWatch(); });
+app.on('before-quit', () => { quitting = true; setWatch({}); globalShortcut.unregisterAll(); });
 app.on('window-all-closed', () => { kb.close(); app.quit(); });

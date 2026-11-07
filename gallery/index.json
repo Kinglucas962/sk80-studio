@@ -1,0 +1,32 @@
+[
+ {
+  "file": "por-do-sol.sk80perfil",
+  "name": "Pôr do sol",
+  "author": "Kinglucas962",
+  "desc": "Degradê laranja → magenta da esquerda para a direita."
+ },
+ {
+  "file": "gamer-fps.sk80perfil",
+  "name": "Gamer FPS",
+  "author": "Kinglucas962",
+  "desc": "WASD vermelho, habilidades em laranja, armas em amarelo, resto azul-escuro."
+ },
+ {
+  "file": "arco-iris-girando.sk80perfil",
+  "name": "Arco-íris girando",
+  "author": "Kinglucas962",
+  "desc": "Efeito Girando com cores aleatórias, velocidade média."
+ },
+ {
+  "file": "oceano-respirando.sk80perfil",
+  "name": "Oceano respirando",
+  "author": "Kinglucas962",
+  "desc": "Respiração azul-água, calma."
+ },
+ {
+  "file": "escritorio.sk80perfil",
+  "name": "Escritório discreto",
+  "author": "Kinglucas962",
+  "desc": "Branco quente e fraquinho, para trabalhar sem chamar atenção."
+ }
+]

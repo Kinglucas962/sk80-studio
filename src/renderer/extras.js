@@ -42,15 +42,8 @@ function applyData(d) {
 }
 
 function pushToKeyboard() {
+  sendLight(); // lighting (respects lights-off / night dimming)
   return device(async () => {
-    const l = state.light;
-    if (state.paintActive) {
-      const colors = {}; for (const [i, c] of Object.entries(state.paint)) colors[i] = hex2rgb(c);
-      await window.sk.customColors(colors, { brightness: state.paintBright });
-    } else {
-      const [r, g, b] = hex2rgb(l.color);
-      await window.sk.lighting({ mode: l.mode, r, g, b, random: l.random, brightness: l.brightness, speed: l.speed, direction: l.direction });
-    }
     await window.sk.macros(state.macros.map((m) => ({ events: m.events, play: m.play })));
     await window.sk.keymap(keymapPayload('top'), 'top');
     await window.sk.keymap(keymapPayload('fn'), 'fn');
@@ -69,6 +62,7 @@ function switchProfile(id, manual) {
     persist(); renderProfiles(); updateTray();
     toast(`Perfil “${p.name}” ${manual ? 'ativado' : 'ativado sozinho'}`);
     await pushToKeyboard();
+    if (manual) await sendProfileGif(p).catch(() => {});
   });
   return switchChain;
 }
@@ -149,13 +143,13 @@ async function importProfile() {
 
 // automatic switching by foreground program
 let fgTimer = null;
-function updateWatch() { window.sk.watchForeground(state.profiles.some((p) => (p.apps || []).length)).catch(() => {}); }
+function updateWatch() { refreshWatch(); }
 function onForeground(name) {
   clearTimeout(fgTimer);
   fgTimer = setTimeout(() => {
     if (!name || name === 'electron') return; // our own window: keep whatever is active
     const hit = state.profiles.find((p) => (p.apps || []).includes(name));
-    const target = hit ? hit.id : state.baseProfile;
+    const target = hit ? hit.id : (nightProfileId || state.baseProfile);
     if (target && target !== state.activeProfile) switchProfile(target, false);
   }, 1200);
 }
@@ -346,32 +340,17 @@ function initMacroExtras() {
   };
 }
 
-// ====================== Pomodoro (live colours, experimental) ======================
+// ====================== Pomodoro (a layer of the live colours in extras2.js) ======================
 const FROW = byLabel('F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12');
-let pomo = null; // {phase, end, total, timer, lit}
+let pomo = null; // {phase, end, total, timer, lit, rgb}
 const fmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
-function pomoColors(lit, rgb) {
-  return LAYOUT.map((k) => {
-    const f = FROW.indexOf(k.idx);
-    if (f >= 0) return [k.idx, ...(f < lit ? rgb : [0, 0, 0])];
-    const c = state.paint[k.idx]; return [k.idx, ...(c ? hex2rgb(c).map((v) => v >> 2) : [0, 0, 0])];
-  });
-}
+const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
+function pomoSet(lit, rgb) { if (pomo) { pomo.lit = lit; pomo.rgb = rgb; } }
 function pomoPhase(phase) {
   const min = phase === 'work' ? +$('#pomoWork').value || 25 : +$('#pomoBreak').value || 5;
   pomo = { ...pomo, phase, total: min * 60000, end: Date.now() + min * 60000, lit: -1 };
   $('#pomoPhase').textContent = phase === 'work' ? 'Foco' : 'Pausa';
   $('#pomoPhase').className = 'pomo-phase ' + phase;
-}
-// Like the official driver, the live colours are re-sent in a loop (~every 95 ms) while the Pomodoro runs;
-// sending them only when a key changed made the whole keyboard blink to the saved effect at each step.
-const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
-async function pomoStream(run) {
-  while (pomo && pomo.run === run) {
-    try { await window.sk.previewColors(pomo.colors); if (syncErr) { syncErr = null; setSync(); } }
-    catch (e) { syncErr = e.message; setSync(); await sleepMs(1000); }
-    await sleepMs(95);
-  }
 }
 async function pomoTick() {
   if (!pomo || pomo.flashing) return;
@@ -380,9 +359,9 @@ async function pomoTick() {
   if (left <= 0) {
     pomo.flashing = true;
     for (let i = 0; i < 3 && pomo; i++) { // blink the F row to mark the change
-      pomo.colors = pomoColors(12, [255, 255, 255]); await sleepMs(400);
+      pomoSet(12, [255, 255, 255]); await sleepMs(400);
       if (!pomo) return;
-      pomo.colors = pomoColors(0, [0, 0, 0]); await sleepMs(400);
+      pomoSet(0, [0, 0, 0]); await sleepMs(400);
     }
     if (!pomo) return;
     pomo.flashing = false;
@@ -390,26 +369,25 @@ async function pomoTick() {
     return pomoTick();
   }
   const lit = Math.ceil((12 * left) / pomo.total);
-  if (lit !== pomo.lit) { pomo.lit = lit; pomo.colors = pomoColors(lit, pomo.phase === 'work' ? [255, 30, 30] : [30, 255, 90]); }
-}function pomoStop() {
+  if (lit !== pomo.lit) pomoSet(lit, pomo.phase === 'work' ? [255, 30, 30] : [30, 255, 90]);
+}
+function pomoStop() {
   if (!pomo) return;
   clearInterval(pomo.timer); pomo = null;
   $('#pomoPhase').textContent = 'Parado'; $('#pomoPhase').className = 'pomo-phase';
   $('#pomoTime').textContent = fmt((+$('#pomoWork').value || 25) * 60000);
-  if (state.paintActive) savePaint(); else applyLight(); // put the saved lighting back
+  liveSet('pomo', null); // the live loop puts the saved lighting back when nothing else is on
 }
 function initPomodoro() {
   $('#pomoStart').onclick = () => {
     if (pomo) pomoStop();
-    const run = Date.now();
-    pomo = { run }; pomoPhase('work'); pomoTick();
+    pomo = {}; pomoPhase('work'); pomoTick();
     pomo.timer = setInterval(pomoTick, 1000);
-    pomoStream(run);
+    liveSet('pomo', (map) => { if (pomo) FROW.forEach((idx, f) => { map[idx] = f < pomo.lit ? pomo.rgb : [0, 0, 0]; }); });
   };
   $('#pomoStop').onclick = pomoStop;
   $('#pomoWork').onchange = () => { if (!pomo) $('#pomoTime').textContent = fmt((+$('#pomoWork').value || 25) * 60000); };
 }
-
 // ====================== settings ======================
 async function initSettings() {
   $('#setTray').checked = !!state.settings.tray;
