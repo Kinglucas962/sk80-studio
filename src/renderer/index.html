@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'">
+  <title>SK80 Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="rail">
+    <div class="brand"><img class="logo" src="icon.png" alt=""><div><b>SK80</b><small>Studio</small></div></div>
+    <button class="nav active" data-view="light"><i>◐</i><span>Iluminação</span></button>
+    <button class="nav" data-view="paint"><i>▦</i><span>Cor por tecla</span></button>
+    <button class="nav" data-view="keys"><i>⌘</i><span>Teclas</span></button>
+    <button class="nav" data-view="macros"><i>⟳</i><span>Macros</span></button>
+    <button class="nav" data-view="screen"><i>▣</i><span>Telinha</span></button>
+    <button class="nav" data-view="profiles"><i>◈</i><span>Perfis</span></button>
+    <button class="nav" data-view="settings"><i>⚙</i><span>Ajustes</span></button>
+    <div class="conn" id="conn"><span class="led"></span><span id="connText">Procurando teclado…</span></div>
+  </nav>
+
+  <main>
+    <header class="top">
+      <div>
+        <h1 id="viewTitle">Iluminação</h1>
+        <p id="viewSub"></p>
+      </div>
+      <div class="topright">
+        <label class="profpick" title="Perfil ativo">Perfil <select id="profSel"></select></label>
+        <div class="sync" id="sync"><span class="sdot"></span><span id="syncText">Tudo salvo no teclado</span></div>
+      </div>
+    </header>
+
+    <section class="board-wrap" id="boardWrap">
+      <div class="board" id="board"><div class="tft" id="tft"><canvas id="tftCanvas" width="160" height="96"></canvas></div></div>
+    </section>
+
+    <!-- ILUMINAÇÃO -->
+    <section class="view active" id="view-light">
+      <div class="grid-light">
+        <div class="card">
+          <h3>Efeito</h3>
+          <div class="modes" id="modes"></div>
+          <p class="hint">Passe o mouse no teclado desenhado para ver os efeitos que reagem ao toque.</p>
+        </div>
+        <div class="card">
+          <h3>Cor</h3>
+          <div id="lightWheel"></div>
+          <label class="toggle"><input type="checkbox" id="lightRandom"><span></span>Cores aleatórias (arco-íris)</label>
+        </div>
+        <div class="card">
+          <h3>Ajustes</h3>
+          <div class="slider"><span>Brilho</span><input type="range" id="lightBright" min="0" max="5" step="1" value="5"><output id="lightBrightOut">5</output></div>
+          <div class="slider"><span>Velocidade</span><input type="range" id="lightSpeed" min="0" max="5" step="1" value="3"><output id="lightSpeedOut">3</output></div>
+          <div class="dir" id="dirRow"><span>Direção</span><div class="seg" id="lightDir"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COR POR TECLA -->
+    <section class="view" id="view-paint">
+      <div class="grid-paint">
+        <div class="card">
+          <h3>Cor do pincel</h3>
+          <div id="paintWheel"></div>
+        </div>
+        <div class="card">
+          <h3>Ferramentas</h3>
+          <div class="tools">
+            <button class="tool on" data-tool="brush"><b>Pincel</b><small>Clique ou arraste por cima das teclas</small></button>
+            <button class="tool" data-tool="erase"><b>Borracha</b><small>Clique para apagar a tecla</small></button>
+            <button class="tool" data-tool="pick"><b>Conta-gotas</b><small>Pega a cor de uma tecla</small></button>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn ghost" id="paintAll">Pintar tudo com esta cor</button>
+            <button class="btn ghost" id="paintClear">Apagar tudo</button>
+          </div>
+          <div class="slider"><span>Brilho</span><input type="range" id="paintBright" min="0" max="5" value="5"><output id="paintBrightOut">5</output></div>
+          <p class="hint">Clique pinta uma tecla; clique e arraste pinta todas por onde o mouse passar. Botão direito (ou arrastar com ele) apaga. Vai direto para o teclado.</p>
+        </div>
+      </div>
+      <div class="grid-paint" style="margin-top:16px">
+        <div class="card">
+          <h3>Modelos prontos</h3>
+          <p class="hint inline" style="margin-bottom:10px">Pinta o grupo de teclas com a cor do pincel.</p>
+          <div class="chips" id="tplList"></div>
+          <label class="toggle small"><input type="checkbox" id="tplOnly"><span></span>Apagar as outras teclas</label>
+        </div>
+        <div class="card">
+          <h3>Degradê</h3>
+          <div class="grad">
+            <input type="color" id="gradA" value="#ff2a2a"><span class="gradbar" id="gradBar"></span><input type="color" id="gradB" value="#2a7bff">
+          </div>
+          <div class="chips" id="gradPresets" style="margin-top:10px"></div>
+          <div class="row"><span class="hint inline lw">Direção</span><div class="seg small" id="gradDir"><button data-v="h" class="on">→</button><button data-v="v">↓</button><button data-v="d">↘</button><button data-v="c">◎ centro</button></div></div>
+          <div class="row" style="margin-top:10px"><span class="hint inline lw">Onde</span><div class="seg small" id="gradWhere"><button data-v="all" class="on">Teclado inteiro</button><button data-v="painted">Só as pintadas</button></div>
+            <div class="grow"></div><button class="btn primary small" id="gradApply">Aplicar degradê</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TECLAS -->
+    <section class="view" id="view-keys">
+      <div class="card row">
+        <div class="seg" id="layerSeg"><button data-v="top" class="on">Camada normal</button><button data-v="fn">Camada Fn</button></div>
+        <span class="hint inline" id="keySel">Escolha uma tecla no desenho acima.</span>
+        <div class="grow"></div>
+        <button class="btn ghost" id="keysReset">Tudo padrão</button>
+      </div>
+      <div class="card picker" id="picker">
+        <div class="tabs" id="pickTabs">
+          <button data-t="default" class="on">Padrão</button>
+          <button data-t="key">Tecla</button>
+          <button data-t="media">Multimídia</button>
+          <button data-t="mouse">Mouse</button>
+          <button data-t="macro">Macro</button>
+          <button data-t="off">Desativar</button>
+        </div>
+        <div class="pickbody" id="pickBody"></div>
+      </div>
+    </section>
+
+    <!-- MACROS -->
+    <section class="view" id="view-macros">
+      <div class="grid-macro">
+        <div class="card mside">
+          <div class="row"><h3 style="margin:0">Macros</h3><div class="grow"></div><button class="btn small" id="mNew">+ Nova</button></div>
+          <div class="row"><button class="btn ghost small" id="mLib">Biblioteca pronta</button><button class="btn ghost small" id="mExport">Exportar</button><button class="btn ghost small" id="mImport">Importar</button></div>
+          <div class="mlist" id="mlist"></div>
+          <div class="mem"><div class="membar"><div id="memFill"></div></div><span id="mSize"></span></div>
+        </div>
+        <div class="card" id="mEditor">
+          <div class="row">
+            <input class="name" id="mName" placeholder="Nome da macro">
+            <div class="grow"></div>
+            <button class="btn ghost small" id="mDup">Duplicar</button>
+            <button class="btn ghost small danger" id="mDelete">Excluir</button>
+          </div>
+
+          <div class="mopts">
+            <div>
+              <div class="lbl">Como tocar</div>
+              <div class="seg" id="mPlay">
+                <button data-v="once">Uma vez</button>
+                <button data-v="times">Repetir</button>
+                <button data-v="toggle">Liga / desliga</button>
+              </div>
+              <label class="times" id="mTimesWrap"><input type="number" id="mTimes" min="1" max="255" value="3"> vezes</label>
+              <p class="hint" id="mPlayHint"></p>
+            </div>
+            <div>
+              <div class="lbl">Tecla que dispara</div>
+              <select id="mKey"></select>
+            </div>
+          </div>
+
+          <div class="mtool">
+            <button class="btn rec" id="mRec"><span class="rdot"></span><span id="mRecText">Gravar</span></button>
+            <div class="seg small" id="mDelayMode"><button data-v="real" class="on">Tempos reais</button><button data-v="fixed">Pausa fixa</button></div>
+            <label class="times" id="mFixedWrap"><input type="number" id="mFixed" min="1" max="5000" value="20"> ms</label>
+            <div class="grow"></div>
+            <button class="btn ghost small" id="mAddKey">+ Tecla</button>
+            <button class="btn ghost small" id="mAddDelay">+ Pausa</button>
+            <button class="btn ghost small" id="mAddText">+ Texto</button>
+            <button class="btn ghost small" id="mClear">Limpar</button>
+          </div>
+          <div class="addtext" id="mTextRow"><input class="text" id="mText" placeholder="Digite o texto e aperte Enter…"><button class="btn small" id="mTextOk">Inserir</button></div>
+
+          <div class="timeline" id="mEvents"></div>
+          <div class="row foot"><span class="hint inline" id="mDur"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TELA -->
+    <section class="view" id="view-screen">
+      <div class="grid-screen">
+        <div class="card drop" id="drop">
+          <canvas id="scrPreview" width="160" height="96"></canvas>
+          <p><b id="scrTitle">Arraste um GIF ou imagem aqui</b><br><span class="hint inline">ou</span> <label class="link">escolha um arquivo<input type="file" id="scrFile" accept="image/gif,image/png,image/jpeg,image/webp" hidden></label></p>
+          <p class="hint" id="scrInfo">Tela de 160 × 96 pixels</p>
+        </div>
+        <div class="card">
+          <h3>Ajuste</h3>
+          <div class="seg" id="fitSeg"><button data-v="cover" class="on">Preencher</button><button data-v="contain">Caber inteiro</button><button data-v="stretch">Esticar</button><button data-v="free">Ajuste livre</button></div>
+          <div id="cropRow" style="display:none">
+            <div class="slider"><span>Zoom</span><input type="range" id="cropZoom" min="0.3" max="5" step="0.1" value="1"><output id="cropZoomOut">1×</output></div>
+            <div class="row"><span class="hint inline">Arraste a imagem na prévia para enquadrar. A rodinha do mouse dá zoom.</span><div class="grow"></div><button class="btn ghost small" id="cropReset">Centralizar</button></div>
+          </div>
+          <div id="rangeRow" style="display:none">
+            <div class="slider"><span>Do quadro</span><input type="range" id="scrFrom" min="1" max="1" value="1"><output id="scrFromOut">1</output></div>
+            <div class="slider"><span>Até o quadro</span><input type="range" id="scrTo" min="1" max="1" value="1"><output id="scrToOut">1</output></div>
+          </div>
+          <div class="slider"><span>Velocidade</span><input type="range" id="scrSpeed" min="0.25" max="3" step="0.25" value="1"><output id="scrSpeedOut">1×</output></div>
+          <div class="slider"><span>Fundo</span><input type="color" id="scrBg" value="#000000"></div>
+          <div class="progress" id="scrProg"><div></div></div>
+          <button class="btn primary full" id="scrSend" disabled>Enviar para a telinha</button>
+          <p class="hint">Tudo que você envia fica salvo na biblioteca abaixo.</p>
+        </div>
+      </div>
+      <div class="card lib">
+        <div class="row"><h3 style="margin:0">Biblioteca</h3><span class="hint inline" id="libCount"></span></div>
+        <div class="libgrid" id="libGrid"></div>
+      </div>
+    </section>
+
+    <!-- PERFIS -->
+    <section class="view" id="view-profiles">
+      <div class="grid-prof">
+        <div class="card pside">
+          <div class="row"><h3 style="margin:0">Perfis</h3><div class="grow"></div><button class="btn small" id="pNew">+ Novo</button></div>
+          <div class="plist" id="pList"></div>
+          <div class="row"><button class="btn ghost small" id="pImport">Importar perfil</button></div>
+        </div>
+        <div class="card" id="pEditor">
+          <div class="row">
+            <input class="name" id="pName" placeholder="Nome do perfil">
+            <div class="grow"></div>
+            <button class="btn primary small" id="pActivate">Usar este perfil</button>
+            <button class="btn ghost small" id="pDup">Duplicar</button>
+            <button class="btn ghost small" id="pExport">Exportar</button>
+            <button class="btn ghost small danger" id="pDelete">Excluir</button>
+          </div>
+          <p class="hint" id="pSummary"></p>
+          <div class="lbl" style="margin-top:18px">Trocar sozinho quando eu abrir</div>
+          <div class="chips" id="pApps"></div>
+          <div class="row">
+            <select id="pAppPick" style="width:300px"><option value="">Escolher um programa aberto…</option></select>
+            <button class="btn ghost small" id="pAppRefresh">Atualizar lista</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <span class="hint inline">ou digite o nome do programa</span>
+            <input class="text" id="pAppName" placeholder="ex.: javaw (Minecraft Java)" style="max-width:240px">
+            <button class="btn small" id="pAppAdd">Adicionar</button>
+          </div>
+          <p class="hint">Quando um desses programas fica na frente, o teclado troca para este perfil. Ao sair dele, volta para o perfil que você escolheu à mão. Para funcionar com a janela fechada, ligue “Ficar na bandeja” em Ajustes.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- AJUSTES -->
+    <section class="view" id="view-settings">
+      <div class="grid-set">
+        <div class="card">
+          <h3>Pomodoro</h3>
+          <div class="pomo">
+            <div class="pomo-time" id="pomoTime">25:00</div>
+            <div class="pomo-phase" id="pomoPhase">Parado</div>
+          </div>
+          <div class="row" style="margin:12px 0">
+            <label class="times" style="margin:0"><input type="number" id="pomoWork" min="1" max="120" value="25"> min foco</label>
+            <label class="times"><input type="number" id="pomoBreak" min="1" max="60" value="5"> min pausa</label>
+          </div>
+          <div class="row"><button class="btn primary" id="pomoStart">Começar</button><button class="btn ghost" id="pomoStop">Parar</button></div>
+          <p class="hint">As teclas F1–F12 viram uma barra que vai apagando com o tempo (vermelho no foco, verde na pausa). Usa as cores ao vivo, então o app precisa ficar aberto. <b>Experimental</b>: ainda não testado no teclado.</p>
+        </div>
+        <div class="card">
+          <h3>Teclado</h3>
+          <div class="setrow"><span>Apagar a luz depois de</span><div class="seg small disabled"><button>Nunca</button><button>1 min</button><button>5 min</button><button>30 min</button></div></div>
+          <div class="setrow"><span>Tempo de resposta das teclas</span><span class="hint inline">—</span></div>
+          <div class="setrow"><span>Relógio da telinha</span><button class="btn ghost small" disabled>Acertar a hora</button></div>
+          <p class="hint">O driver antigo tem essas três opções, mas ainda não sei quais bytes ele manda para o teclado. Falta uma captura com o driver antigo para liberar.</p>
+        </div>
+        <div class="card">
+          <h3>Aplicativo</h3>
+          <label class="toggle"><input type="checkbox" id="setTray"><span></span>Ficar na bandeja ao fechar a janela</label>
+          <label class="toggle"><input type="checkbox" id="setAuto"><span></span>Iniciar com o Windows (escondido na bandeja)</label>
+          <label class="toggle"><input type="checkbox" id="setTest"><span></span>Modo teste da telinha: até 255 quadros</label>
+          <p class="hint">Modo teste: passa do limite já testado (33 quadros). Se a telinha travar, desconecte e conecte o teclado.</p>
+          <div class="about">
+            <img src="icon.png" alt="">
+            <div class="grow"><b>SK80 Studio</b><small id="appVer"></small><small id="updText"></small></div>
+          </div>
+          <div class="row"><button class="btn ghost small" id="updCheck">Procurar atualização</button><button class="btn primary small" id="updInstall" style="display:none">Reiniciar e atualizar</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="libModal"><div class="modal-card lib-card">
+    <div class="row"><b>Biblioteca de macros</b><div class="grow"></div><button class="btn ghost small" id="libClose">Fechar</button></div>
+    <p class="hint">Clique para adicionar como macro nova; depois escolha a tecla que dispara. Atalhos com Ctrl, Shift, Alt ou Win dentro de macro ainda não foram testados no teclado.</p>
+    <div id="libBody"></div>
+  </div></div>
+  <div class="modal" id="keyModal"><div class="modal-card"><b>Aperte a tecla que quer inserir</b><p class="hint">Ela entra como um toque (apertar e soltar). Esc cancela.</p></div></div>
+
+  <script src="data.js" charset="utf-8"></script>
+  <script src="picker.js" charset="utf-8"></script>
+  <script src="sim.js" charset="utf-8"></script>
+  <script src="app.js" charset="utf-8"></script>
+  <script src="extras.js" charset="utf-8"></script>
+</body>
+</html>

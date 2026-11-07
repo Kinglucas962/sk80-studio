@@ -1,0 +1,39 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+const call = async (ch, ...a) => {
+  const r = await ipcRenderer.invoke(ch, ...a);
+  if (!r.ok) throw new Error(r.error);
+  return r.value;
+};
+
+contextBridge.exposeInMainWorld('sk', {
+  status: () => call('status'),
+  getStore: () => call('store:get'),
+  setStore: (patch) => call('store:set', patch),
+  lighting: (o) => call('lighting', o),
+  customColors: (c, o) => call('custom-colors', c, o),
+  previewColors: (e) => call('preview-colors', e),
+  keymap: (m, layer) => call('keymap', m, layer),
+  macros: (m) => call('macros', m),
+  screen: (frames, delays) => call('screen', frames, delays),
+  gifList: () => call('gif:list'),
+  gifRead: (id) => call('gif:read', id),
+  gifSave: (meta, bytes) => call('gif:save', meta, bytes),
+  gifRename: (id, name) => call('gif:rename', id, name),
+  gifDelete: (id) => call('gif:delete', id),
+  onScreenProgress: (cb) => ipcRenderer.on('screen-progress', (_e, i, n) => cb(i, n)),
+  // files, programs, tray, autostart
+  saveFile: (name, text, ext) => call('file:save', name, text, ext),
+  openFile: (ext) => call('file:open', ext),
+  appList: () => call('apps:list'),
+  watchForeground: (on) => call('fg:watch', on),
+  onForeground: (cb) => ipcRenderer.on('fg-app', (_e, name) => cb(name)),
+  setTray: (st) => call('tray:set', st),
+  onTrayProfile: (cb) => ipcRenderer.on('tray-profile', (_e, id) => cb(id)),
+  appInfo: () => call('app:info'),
+  checkUpdate: () => call('update:check'),
+  installUpdate: () => call('update:install'),
+  onUpdate: (cb) => ipcRenderer.on('update', (_e, u) => cb(u)),
+  getAutostart: () => call('autostart:get'),
+  setAutostart: (on) => call('autostart:set', on),
+});

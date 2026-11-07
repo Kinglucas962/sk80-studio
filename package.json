@@ -1,0 +1,61 @@
+{
+  "name": "sk80-studio",
+  "productName": "SK80 Studio",
+  "version": "1.0.0",
+  "description": "Aplicativo para controlar o teclado Womier / XVX SK80: iluminação, cor por tecla, teclas, macros, telinha, perfis.",
+  "main": "src/main.js",
+  "author": "Kinglucas962",
+  "license": "MIT",
+  "homepage": "https://github.com/Kinglucas962/sk80-studio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kinglucas962/sk80-studio.git"
+  },
+  "keywords": ["womier", "sk80", "keyboard", "rgb", "electron"],
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "icons": "powershell -NoProfile -ExecutionPolicy Bypass -File build/make-icons.ps1",
+    "dist": "electron-builder --win nsis --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11",
+    "node-hid": "^3.4.0"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "allowScripts": {
+    "node-hid@3.4.0": true,
+    "electron@33.4.11": true
+  },
+  "build": {
+    "appId": "io.github.kinglucas962.sk80studio",
+    "productName": "SK80 Studio",
+    "npmRebuild": false,
+    "copyright": "© 2026 Kinglucas962",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["src/**/*", "package.json"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.ico",
+      "artifactName": "SK80-Studio-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SK80 Studio",
+      "uninstallDisplayName": "SK80 Studio",
+      "installerLanguages": ["pt_BR"],
+      "language": "1046"
+    },
+    "publish": [{ "provider": "github", "owner": "Kinglucas962", "repo": "sk80-studio" }]
+  }
+}

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+# local reverse-engineering workspace (captures, personal data, vendor files)
+re/
+# personal working notes
+NOTAS.md
+*.log
