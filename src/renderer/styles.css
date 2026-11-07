@@ -312,6 +312,9 @@ input[type=range] { accent-color: var(--fill); width: 100%; cursor: pointer; }
 .seg button:hover { color: var(--text); }
 .seg button.on { background: var(--fill); color: var(--fill-ink); }
 .seg.small button { padding: 4px 10px; font-size: 12.5px; }
+#gradDir { display: flex; flex-wrap: wrap; gap: 6px; background: none; border: 0; padding: 0; }
+#gradDir .seg { display: inline-flex; }
+#gradDir .seg button { min-width: 32px; padding: 4px 8px; }
 
 select, .times input { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); outline: none; }
 select { width: 160px; padding: 7px 10px; cursor: pointer; }

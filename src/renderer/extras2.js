@@ -2,6 +2,9 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.9': [
+    'Degradê com mais direções: da direita para a esquerda, de baixo para cima, as quatro diagonais e das bordas para o centro.',
+  ],
   '1.1.8': [
     'A prévia do Inclinado ficou igual ao teclado: várias faixas na diagonal, uma atrás da outra. A cópia para Efeitos próprios também.',
     'O destaque do menu não fica mais por cima do aviso de atualização: o botão “Reiniciar e atualizar” aparece certinho.',

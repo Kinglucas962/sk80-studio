@@ -229,7 +229,12 @@ function applyGradient() {
   const dir = $('#gradDir .on').dataset.v, where = $('#gradWhere .on').dataset.v;
   const keys = LAYOUT.filter((k) => where === 'all' || state.paint[k.idx]).map((k) => k.idx);
   if (!keys.length) { toast('Nenhuma tecla pintada ainda'); return; }
-  const raw = (i) => { const p = keyPos[i]; return dir === 'h' ? p.x : dir === 'v' ? p.y : dir === 'd' ? p.x + p.y * 0.6 : Math.hypot(p.x - 0.5, (p.y - 0.5) * 0.45); };
+  // first colour starts where the arrow starts; ◎ = centre to edges, ◉ = edges to centre
+  const raw = (i) => {
+    const p = keyPos[i], ring = Math.hypot(p.x - 0.5, (p.y - 0.5) * 0.45);
+    return { r: p.x, l: -p.x, d: p.y, u: -p.y, dr: p.x + p.y * 0.6, ul: -(p.x + p.y * 0.6),
+      ur: p.x - p.y * 0.6, dl: -(p.x - p.y * 0.6), c: ring, ci: -ring }[dir];
+  };
   const vals = keys.map(raw), lo = Math.min(...vals), hi = Math.max(...vals);
   const A = hex2rgb($('#gradA').value), B = hex2rgb($('#gradB').value);
   keys.forEach((i, n) => {
