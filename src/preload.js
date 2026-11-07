@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('sk', {
   onCaps: (cb) => ipcRenderer.on('caps', (_e, on) => cb(on)),
   onVolume: (cb) => ipcRenderer.on('volume', (_e, v, muted) => cb(v, muted)),
   onTitle: (cb) => ipcRenderer.on('win-title', (_e, name, title) => cb(name, title)),
+  onBadge: (cb) => ipcRenderer.on('win-badge', (_e, name, n) => cb(name, n)),
   onAway: (cb) => ipcRenderer.on('away', (_e, away, why) => cb(away, why)),
   onIdle: (cb) => ipcRenderer.on('idle', (_e, sec) => cb(sec)),
   setHotkey: (accel) => call('hotkey:set', accel),

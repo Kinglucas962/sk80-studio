@@ -96,7 +96,7 @@ public static class FG {
 "@
 $cfg = $env:SK80_WATCH | ConvertFrom-Json
 if ($cfg.vol) { Add-Type -TypeDefinition $env:SK80_VOLCS }
-$last = '?'; $lastCaps = -1; $lastVol = '?'; $titles = @{}; $tick = 0
+$last = '?'; $lastCaps = -1; $lastVol = '?'; $titles = @{}; $badges = @{}; $tick = 0
 function Out1($s) { [Console]::Out.WriteLine($s); [Console]::Out.Flush() }
 while ($true) {
   $tick++
@@ -115,10 +115,39 @@ while ($true) {
     if ($c -ne $lastCaps) { $lastCaps = $c; Out1 ("caps" + [char]9 + $c) }
   }
   if ($slow) { foreach ($name in $cfg.titles) {
-    $t = (Get-Process -Name $name -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle } | Select-Object -First 1).MainWindowTitle
+    # part of the name is enough: the new WhatsApp runs as "WhatsApp.Root"
+    $t = (Get-Process -Name ('*' + $name + '*') -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle } | Select-Object -First 1).MainWindowTitle
     if ($null -eq $t) { $t = '' }
     if ($titles[$name] -ne $t) { $titles[$name] = $t; Out1 ("title" + [char]9 + $name + [char]9 + $t) }
   } }
+  # taskbar buttons: some apps (Discord) put the unread count there, e.g. "Atenção solicitada, 1 notifications"
+  if ($cfg.titles.Count -and ($tick % 4 -eq 0)) {
+    $found = @{}
+    try {
+      if (-not $script:uia) { Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes; $script:uia = $true }
+      $A = [System.Windows.Automation.AutomationElement]
+      $bar = $A::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, (New-Object System.Windows.Automation.PropertyCondition($A::ClassNameProperty, 'Shell_TrayWnd')))
+      $btns = $bar.FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::ClassNameProperty, 'Taskbar.TaskListButtonAutomationPeer')))
+      foreach ($b in $btns) {
+        $c = $b.Current; $help = [string]$c.HelpText
+        foreach ($name in $cfg.titles) {
+          if ($c.Name -notlike ('*' + $name + '*')) { continue }
+          $n = 0
+          if ($help -match '(\\d+)\\s*(notifica|notification|mensage|message)') { $n = [int]$matches[1] }
+          elseif ($help -match 'Aten|Attention') { $n = 1 }
+          # the number bubble on the icon (WhatsApp) is a text inside the button, e.g. "3" or "99+"
+          foreach ($k in $b.FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text)))) {
+            if ($k.Current.Name -match '^\\s*(\\d+)\\+?\\s*$' -and [int]$matches[1] -gt $n) { $n = [int]$matches[1] }
+          }
+          if ($n -gt [int]$found[$name]) { $found[$name] = $n }
+        }
+      }
+    } catch {}
+    foreach ($name in $cfg.titles) {
+      $n = [int]$found[$name]
+      if ($badges[$name] -ne $n) { $badges[$name] = $n; Out1 ("badge" + [char]9 + $name + [char]9 + $n) }
+    }
+  }
   if ($cfg.vol) { Start-Sleep -Milliseconds 250 } else { Start-Sleep -Milliseconds 700 }
 }`;
 function setWatch(cfg) {
@@ -143,6 +172,7 @@ function setWatch(cfg) {
       else if (parts[0] === 'caps') win.webContents.send('caps', parts[1] === '1');
       else if (parts[0] === 'vol') { const [v, m] = (parts[1] || '').split(' '); if (v !== '') win.webContents.send('volume', +v, m === '1'); }
       else if (parts[0] === 'title') win.webContents.send('win-title', parts[1].toLowerCase(), parts.slice(2).join('\t'));
+      else if (parts[0] === 'badge') win.webContents.send('win-badge', parts[1].toLowerCase(), +parts[2] || 0);
     }
   });
   p.stderr.on('data', (d) => { if (process.env.SK80_DISPLAY2) try { fs.appendFileSync(path.join(__dirname, '..', 're', 'watch.err'), d); } catch (_) {} });

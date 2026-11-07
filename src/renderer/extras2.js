@@ -2,6 +2,9 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.1.5': [
+    'Aviso de mensagem agora funciona com o WhatsApp novo e com o Discord: o app lê o número que aparece no ícone da barra de tarefas.',
+  ],
   '1.1.4': [
     'Em Iluminação, “Copiar para Efeitos próprios” transforma o efeito escolhido em quadros que você pode editar. Com Cor por tecla ativa, suas cores viram o primeiro quadro.',
     'Galeria: cada conta do GitHub pode mandar até 5 perfis.',
@@ -186,11 +189,14 @@ function capsLayer(on) {
 }
 let capsOn = false;
 
-// message alert: window titles with "(3)" style unread counters
-const unread = {};
+// message alert: unread counters from the window title ("(3) WhatsApp") or the taskbar button
+// (Discord: "Atenção solicitada, 1 notifications"); the bigger of the two wins
+const unread = {}, fromTitle = {}, fromBadge = {};
 function titleCount(t) { const m = String(t || '').match(/[(\[](\d+)[)\]]/); return m ? +m[1] : 0; }
+function onBadge(name, n) { fromBadge[name] = n; onTitle(name, null); }
 function onTitle(name, title) {
-  unread[name] = titleCount(title);
+  if (title !== null) fromTitle[name] = titleCount(title);
+  unread[name] = Math.max(fromTitle[name] || 0, fromBadge[name] || 0);
   const any = state.settings.msg.on && Object.values(unread).some((n) => n > 0);
   liveSet('msg', any ? (map, t) => {
     const c = (t % 1) < 0.5 ? hex2rgb(state.settings.msg.color) : [0, 0, 0];
@@ -477,7 +483,7 @@ function initIndicators() {
     const box = $('#msgApps'); box.innerHTML = '';
     for (const a of s.msg.apps) {
       const c = document.createElement('button'); c.className = 'chip app'; c.innerHTML = `${esc(a)} <i>✕</i>`;
-      c.onclick = () => { s.msg.apps = s.msg.apps.filter((x) => x !== a); delete unread[a]; persist(); renderApps(); refreshWatch(); onTitle(a, ''); };
+      c.onclick = () => { s.msg.apps = s.msg.apps.filter((x) => x !== a); delete unread[a]; delete fromBadge[a]; persist(); renderApps(); refreshWatch(); onTitle(a, ''); };
       box.appendChild(c);
     }
   };
@@ -518,6 +524,7 @@ function initExtras2() {
   window.sk.onHotkey(nextProfile);
   window.sk.onCaps((on) => { capsOn = on; capsLayer(on); });
   window.sk.onTitle(onTitle);
+  if (window.sk.onBadge) window.sk.onBadge(onBadge);
   refreshWatch();
   // key tester
   window.addEventListener('keydown', (e) => testerKey(e, 'down'), true);
