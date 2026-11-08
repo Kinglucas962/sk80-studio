@@ -2,6 +2,10 @@
    (Caps Lock, message alert, Pomodoro), key tester, community gallery, GIF per profile, "what's new".
    Uses globals from app.js and extras.js. */
 const CHANGES = {
+  '1.4.2': [
+    'Aviso do Discord já na primeira mensagem, mesmo com jogo em tela cheia (antes só a partir da segunda).',
+    'O WhatsApp não pisca mais por causa de status novo: só mensagem conta.',
+  ],
   '1.4.1': [
     'Aviso de mensagem com uma cor para cada programa: clique na bolinha ao lado do nome (WhatsApp verde, Discord azul...). Com dois programas esperando, o teclado pisca uma cor de cada vez.',
     'Ao atualizar pulando versões, esta janela mostra tudo o que mudou desde a versão que você tinha.',

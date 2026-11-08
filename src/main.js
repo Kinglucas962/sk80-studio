@@ -92,8 +92,15 @@ public static class FG {
  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
  [DllImport("user32.dll")] public static extern short GetKeyState(int k);
+ [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+ [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c, string n);
+ [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint f);
+ [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+ [StructLayout(LayoutKind.Sequential)] public struct RECT { public int l, t, r, b; }
 }
 "@
+# real pixels, so taskbar button positions (UI Automation) match the screen capture used for Discord's red badge
+[void][FG]::SetProcessDPIAware()
 $cfg = $env:SK80_WATCH | ConvertFrom-Json
 if ($cfg.vol) { Add-Type -TypeDefinition $env:SK80_VOLCS }
 $last = '?'; $lastCaps = -1; $lastVol = '?'; $titles = @{}; $badges = @{}; $script:raws = @{}; $tick = 0
@@ -133,13 +140,37 @@ while ($true) {
         foreach ($name in $cfg.titles) {
           if ($c.Name -notlike ('*' + $name + '*')) { continue }
           if ($help) { $rawNow[$name] = ($help -replace '[\\t\\r\\n]', ' ') }
-          # Seen on Lucas's PC: "No Notifications" (none) and "Atenção solicitada, 1 notifications". Other PCs
-          # may word it differently (other language, "one", no number for the first message), so: any number
-          # wins; "no / nenhum / sem" at the start means none; otherwise any unread or attention word means 1.
+          # Seen on Lucas's PC: Discord "No Notifications" / "0 notifications" / "Atenção solicitada, 1 notifications";
+          # WhatsApp "Status 1 item" (a new status, NOT a message: 1.4.0 counted any number and blinked for it).
+          # So a number counts only next to a message word; "no / nenhum / sem" means none; a message or
+          # attention word without a number means 1.
           $n = 0
-          if ($help -match '(\\d+)') { $n = [int]$matches[1] }
+          $msgWord = 'notifica|notification|mensag|message|unread|n.o lid'
+          if ($help -match ('(\\d+)\\s*(' + $msgWord + ')')) { $n = [int]$matches[1] }
           elseif ($help -match '^\\s*(no|nenhum|nenhuma|sem)\\b') { $n = 0 }
-          elseif ($help -match '\\b(uma|um|one)\\b|unread|n.o lid|nova|new|aten|attention|notifica|mensag|message') { $n = 1 }
+          elseif ($help -match ($msgWord + '|aten|attention')) { $n = 1 }
+          # Discord with ONE unread message: the icon gets its red "1" but the text stays "No Notifications"
+          # (seen on Lucas's PC, 2026-11-07; the text only updates from the 2nd message). So look at the icon:
+          # red badge pixels together with Discord's blue-purple logo = at least 1. The taskbar is drawn with
+          # PrintWindow, which works under a full-screen game (a screen capture showed Valorant there instead).
+          if ($n -eq 0 -and $name -like '*discord*') {
+            try {
+              if (-not $script:gdi) { Add-Type -AssemblyName System.Drawing; $script:gdi = $true }
+              $tb = [FG]::FindWindow('Shell_TrayWnd', $null); $tr = New-Object FG+RECT; [void][FG]::GetWindowRect($tb, [ref]$tr)
+              $rc = $c.BoundingRectangle; $bx = [int]$rc.X - $tr.l; $by = [int]$rc.Y - $tr.t; $bw = [int]$rc.Width; $bh = [int]$rc.Height
+              $tw = $tr.r - $tr.l; $th = $tr.b - $tr.t
+              if ($bw -gt 8 -and $bh -gt 8 -and $bx -ge 0 -and $by -ge 0 -and $bx + $bw -le $tw -and $by + $bh -le $th) {
+                $bmp = New-Object System.Drawing.Bitmap $tw, $th
+                $gr = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $gr.GetHdc(); [void][FG]::PrintWindow($tb, $hdc, 2); $gr.ReleaseHdc($hdc); $gr.Dispose()
+                $red = 0; $logo = 0
+                for ($yy = $by; $yy -lt $by + $bh; $yy += 2) { for ($xx = $bx; $xx -lt $bx + $bw; $xx += 2) { $px = $bmp.GetPixel($xx, $yy)
+                  if ($px.R -gt 200 -and $px.G -lt 90 -and $px.B -lt 100) { $red++ }
+                  elseif ($px.B -gt 200 -and $px.R -gt 60 -and $px.R -lt 130 -and $px.G -gt 70 -and $px.G -lt 130) { $logo++ } } }
+                $bmp.Dispose()
+                if ($red -ge 6 -and $logo -ge 15) { $n = 1 }
+              }
+            } catch {}
+          }
           # the number bubble on the icon (WhatsApp) is a text inside the button, e.g. "3" or "99+"
           foreach ($k in $b.FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text)))) {
             if ($k.Current.Name -match '^\\s*(\\d+)\\+?\\s*$' -and [int]$matches[1] -gt $n) { $n = [int]$matches[1] }
